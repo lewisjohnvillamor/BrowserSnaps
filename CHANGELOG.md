@@ -7,6 +7,7 @@
 - Changed dedicated-window screenshots to use the tab-specific DevTools capture path instead of the active-window API.
 - Added automatic fallback to current-tab mode if Chrome cannot create a dedicated capture window.
 - Opened a visible error page when a background capture fails instead of only showing a badge.
+- Refreshed the README with current popup, results-viewer, and captured-site screenshots.
 
 ## 1.4.0 - 2026-08-12
 

@@ -2,9 +2,9 @@
 
 Capture the current website's navigation pages at one or more screen sizes, review the results, and export them as PDF or PNG — directly from Chrome.
 
-![BrowserSnaps extension popup](docs/screenshots/browser-snaps-popup.png)
-
 BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses your active tab and existing signed-in browser session, discovers same-site navigation links, scrolls through each selected page, captures every visible viewport, and stitches the tiles into a full-page image. A local results viewer then lets you download PDF, PNG, or both.
+
+![BrowserSnaps extension popup showing pages, screen sizes, output options, and capture-window mode](docs/screenshots/browser-snaps-popup.png)
 
 ## What it does
 
@@ -27,7 +27,13 @@ BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses yo
 - Sends no website data to a server
 - Requires no build step and has no production dependencies
 
-![Example website used for a capture](docs/screenshots/demo-website.png)
+## Results viewer
+
+After capturing, BrowserSnaps opens a local results page where you can preview every page and screen size, change the zoom, untick unwanted captures, and choose the final download format.
+
+![BrowserSnaps results viewer showing a full-page capture and PDF and PNG export controls](docs/screenshots/browser-snaps-results.png)
+
+The viewer uses the stitched full-page image—not separate viewport screenshots—so PDF pages and downloaded PNGs remain visually continuous.
 
 ## Install from source
 
@@ -80,12 +86,17 @@ Each checked page is captured once per checked screen size. BrowserSnaps scrolls
 
 Capture results are stored only in Chrome's local extension storage and automatically expire after 24 hours.
 
+### Example captured website
+
+The included demo site is used for documentation and development checks:
+
+![Example website captured by BrowserSnaps](docs/screenshots/demo-website.png)
+
 ## Permissions and privacy
 
 | Permission | Why it is needed |
 | --- | --- |
 | `activeTab` | Reads and operates only on the tab where you open BrowserSnaps |
-| `alarms` | Removes locally stored capture sessions after 24 hours |
 | `scripting` | Discovers navigation links and auto-scrolls pages |
 | `debugger` | Emulates the optional responsive viewport presets |
 | `downloads` | Saves PDF, PNG, and ZIP results |
