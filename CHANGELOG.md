@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.1 - 2026-08-12
+
+- Removed the capture-results database from the service worker startup path to prevent extension initialization failures.
+- Restored current-tab capture as the safe default while keeping dedicated capture windows optional.
+- Changed dedicated-window screenshots to use the tab-specific DevTools capture path instead of the active-window API.
+- Added automatic fallback to current-tab mode if Chrome cannot create a dedicated capture window.
+- Opened a visible error page when a background capture fails instead of only showing a badge.
+
 ## 1.4.0 - 2026-08-12
 
 - Added a dedicated capture-window mode so the main Chrome window remains available during long jobs.

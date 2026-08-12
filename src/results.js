@@ -229,7 +229,10 @@ document.querySelector("#select-none").addEventListener("click", () => {
 
 (async () => {
   try {
-    const sessionId = new URLSearchParams(location.search).get("session");
+    const parameters = new URLSearchParams(location.search);
+    const errorMessage = parameters.get("error");
+    if (errorMessage) throw new Error(`Capture failed: ${errorMessage}`);
+    const sessionId = parameters.get("session");
     if (!sessionId) throw new Error("The capture session is missing.");
     state.session = await BrowserSnapsStore.getSession(sessionId);
     if (!state.session?.captures?.length) throw new Error("These capture results have expired.");

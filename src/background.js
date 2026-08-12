@@ -1,22 +1,9 @@
-/* global BrowserSnapsStore, chrome, importScripts */
-
-importScripts("storage.js");
+/* global chrome */
 
 const DEBUGGER_VERSION = "1.3";
 const TILE_OVERLAP = 80;
 const TILE_DELAY = 450;
 const jobs = new Map();
-
-function scheduleCleanup() {
-  chrome.alarms.create("cleanup-captures", { periodInMinutes: 60 });
-  BrowserSnapsStore.cleanup().catch(() => {});
-}
-
-chrome.runtime.onInstalled.addListener(scheduleCleanup);
-chrome.runtime.onStartup.addListener(scheduleCleanup);
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === "cleanup-captures") BrowserSnapsStore.cleanup().catch(() => {});
-});
 
 function sendCommand(tabId, method, params = {}) {
   return chrome.debugger.sendCommand({ tabId }, method, params);
@@ -220,8 +207,8 @@ async function restorePageStyles(tabId) {
   }).catch(() => {});
 }
 
-async function captureVisibleTile(tabId, windowId, currentProfile) {
-  if (currentProfile) {
+async function captureVisibleTile(tabId, windowId, useVisibleTab) {
+  if (useVisibleTab) {
     const [active] = await chrome.tabs.query({ active: true, windowId });
     if (active?.id !== tabId) {
       throw new Error("Keep the page tab active until BrowserSnaps finishes capturing it.");
@@ -238,7 +225,7 @@ async function captureVisibleTile(tabId, windowId, currentProfile) {
   return screenshot.data;
 }
 
-async function capturePage(tabId, windowId, profile, page) {
+async function capturePage(tabId, windowId, profile, page, dedicatedWindow) {
   const metrics = await stabilizePage(tabId);
   const tiles = [];
   const step = Math.max(1, metrics.height - TILE_OVERLAP);
@@ -254,7 +241,7 @@ async function capturePage(tabId, windowId, profile, page) {
     });
     const settled = await settleAt(tabId, requestedY);
     documentHeight = Math.max(documentHeight, settled.documentHeight);
-    const data = await captureVisibleTile(tabId, windowId, profile.id === "current");
+    const data = await captureVisibleTile(tabId, windowId, profile.id === "current" && !dedicatedWindow);
     tiles.push({ data, y: settled.y });
     if (profile.id === "current") await pause(100);
 
@@ -338,7 +325,8 @@ async function createCaptureWorkspace(tabId, originalTab, enabled) {
   } catch (error) {
     if (workspace.placeholderTabId) await chrome.tabs.remove(workspace.placeholderTabId).catch(() => {});
     if (originalTab.pinned) await chrome.tabs.update(tabId, { pinned: true }).catch(() => {});
-    throw error;
+    publishStatus(tabId, { message: "Capture window unavailable; continuing in the current tab…" });
+    return workspace;
   }
 }
 
@@ -377,6 +365,7 @@ async function runCapture(tabId, options) {
   let completed = 0;
   let workspace;
   let sessionId;
+  let failureMessage;
 
   jobs.set(tabId, { tabId, running: true, cancelled: false, completed: 0, total, message: "Preparing capture…" });
   updateBadge(tabId, "0%", "#2563eb");
@@ -394,7 +383,7 @@ async function runCapture(tabId, options) {
         await applyProfile(tabId, profile, originalZoom);
         await loadPage(tabId, page.url);
         await pause(750);
-        groups.push(await capturePage(tabId, workspace.windowId, profile, page));
+        groups.push(await capturePage(tabId, workspace.windowId, profile, page, workspace.dedicated));
         completed += 1;
         updateBadge(tabId, `${Math.round((completed / total) * 100)}%`, "#2563eb");
         publishStatus(tabId, { completed, message: `Captured ${completed} of ${total}` });
@@ -423,6 +412,7 @@ async function runCapture(tabId, options) {
       error: true,
       message: cancelled ? "Capture cancelled." : error.message
     });
+    failureMessage = cancelled ? "Capture cancelled." : error.message;
   } finally {
     await restorePageStyles(tabId);
     await sendCommand(tabId, "Emulation.clearDeviceMetricsOverride").catch(() => {});
@@ -447,6 +437,13 @@ async function runCapture(tabId, options) {
       url: resultUrl,
       active: true
     }).catch(() => chrome.tabs.create({ url: resultUrl, active: true }));
+  } else if (failureMessage) {
+    const errorUrl = chrome.runtime.getURL(`src/results.html?error=${encodeURIComponent(failureMessage)}`);
+    await chrome.tabs.create({
+      windowId: workspace?.originalWindowId || originalTab.windowId,
+      url: errorUrl,
+      active: true
+    }).catch(() => chrome.tabs.create({ url: errorUrl, active: true }));
   }
 }
 

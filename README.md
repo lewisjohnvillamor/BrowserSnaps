@@ -50,7 +50,7 @@ BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses yo
 3. Tick the navigation pages to capture.
 4. Tick one or more screen sizes. **Current tab** is selected by default and uses the browser size you can see.
 5. Choose PDF, PNG, or both, then choose one combined download or separate files by screen size.
-6. Leave **Use a capture window** checked if you want to continue working in your main Chrome window.
+6. Enable **Use a capture window** if you want to continue working in your main Chrome window. Current-tab mode remains the default for maximum compatibility.
 7. Select **Capture selected pages** and approve Chrome's debugging notice if it appears.
 8. Keep the dedicated capture window open and unminimized. It may remain behind your main window.
 9. Review the stitched captures, untick anything you do not want, then select PDF, PNG, or PDF + PNG.
