@@ -1,6 +1,6 @@
 # BrowserSnaps
 
-Capture the current website's navigation pages at one or more screen sizes and save everything into a single PDF — directly from Chrome.
+Capture the current website's navigation pages at one or more screen sizes and save everything into a readable, paginated PDF — directly from Chrome.
 
 ![BrowserSnaps extension popup](docs/screenshots/browser-snaps-popup.png)
 
@@ -13,9 +13,12 @@ BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses yo
 - Lets you tick only the pages you want
 - Captures Desktop, Laptop, Tablet, and Mobile viewport presets
 - Auto-scrolls before capture so lazy-loaded sections appear
-- Handles long pages in safe 12,000-pixel segments
+- Waits for web fonts, images, and responsive content before capture
+- Normalizes browser zoom so every preset uses its exact advertised width
+- Reloads every route at every selected screen size
+- Paginates long captures onto labeled A4 sheets instead of oversized PDF pages
 - Combines every capture into one local PDF
-- Returns to the original page when finished
+- Restores the original page, browser zoom, and scroll position when finished
 - Sends no website data to a server
 - Requires no build step and has no production dependencies
 
@@ -58,7 +61,7 @@ The blue badge shows progress. A green check means the PDF was created. BrowserS
 | Tablet | 768 × 1024 | Touch/mobile layout |
 | Mobile | 390 × 844 | Touch/mobile layout |
 
-Each checked page is captured once per checked screen size. Selecting 5 pages and 3 screen sizes creates 15 page views in the PDF.
+Each checked page is captured once per checked screen size. Long web pages continue across multiple labeled PDF sheets so the result remains readable in ordinary PDF viewers and when printed.
 
 ## Permissions and privacy
 
@@ -78,7 +81,7 @@ BrowserSnaps has no analytics, remote code, accounts, or backend. Captures and p
 - Only same-origin navigation links are listed. This prevents the capture job from walking into unrelated websites.
 - Some sites block automation or change content based on viewport, cookie consent, animations, or login state.
 - Video frames, WebGL canvases, and content inside cross-origin iframes may not appear consistently.
-- Very long pages are split into multiple PDF pages to stay within Chrome's safe capture dimensions.
+- Long pages are divided into viewport-height sections and placed on standard A4 portrait or landscape sheets.
 - Keep the source tab open until the job completes.
 
 ## Development

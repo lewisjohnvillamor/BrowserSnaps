@@ -35,6 +35,13 @@
     ]);
   }
 
+  function pdfText(value) {
+    return String(value || "")
+      .normalize("NFKD")
+      .replace(/[^\x20-\x7e]/g, "")
+      .replace(/([\\()])/g, "\\$1");
+  }
+
   function createPdf(captures) {
     if (!captures.length) {
       throw new Error("There are no screenshots to add to the PDF.");
@@ -42,6 +49,8 @@
 
     const objects = [null, null];
     const pageReferences = [];
+    const fontId = objects.length + 1;
+    objects.push(ascii("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"));
 
     captures.forEach((capture, captureIndex) => {
       const jpeg = decodeBase64(capture.data);
@@ -52,21 +61,39 @@
         jpeg
       ));
 
-      const maxPoints = 14_000;
-      const scale = Math.min(0.75, maxPoints / Math.max(capture.width, capture.height));
-      const pageWidth = Math.max(1, capture.width * scale);
-      const pageHeight = Math.max(1, capture.height * scale);
+      const landscape = capture.width >= capture.height;
+      const pageWidth = landscape ? 842 : 595;
+      const pageHeight = landscape ? 595 : 842;
+      const margin = 28;
+      const headerHeight = 30;
+      const footerHeight = 20;
+      const availableWidth = pageWidth - (margin * 2);
+      const availableHeight = pageHeight - (margin * 2) - headerHeight - footerHeight;
+      const scale = Math.min(availableWidth / capture.width, availableHeight / capture.height);
+      const imageWidth = capture.width * scale;
+      const imageHeight = capture.height * scale;
+      const imageX = (pageWidth - imageWidth) / 2;
+      const imageY = margin + footerHeight + ((availableHeight - imageHeight) / 2);
       const imageName = `Im${captureIndex + 1}`;
+      const header = pdfText(
+        `${capture.pageLabel || "Website"} | ${capture.profileLabel || "Capture"} ${capture.viewport || ""}`
+      );
+      const footer = pdfText(
+        `${capture.pageUrl || ""} | Section ${capture.part || 1} of ${capture.parts || 1}`
+      );
       const drawing = ascii(
-        `q\n${pageWidth.toFixed(2)} 0 0 ${pageHeight.toFixed(2)} 0 0 cm\n/${imageName} Do\nQ`
+        `BT\n/F1 10 Tf\n${margin} ${pageHeight - margin - 10} Td\n(${header}) Tj\nET\n` +
+        `q\n${imageWidth.toFixed(2)} 0 0 ${imageHeight.toFixed(2)} ${imageX.toFixed(2)} ${imageY.toFixed(2)} cm\n/${imageName} Do\nQ\n` +
+        `BT\n/F1 7 Tf\n${margin} ${margin - 2} Td\n(${footer}) Tj\nET`
       );
       const contentId = objects.length + 1;
       objects.push(streamObject("", drawing));
 
       const pageId = objects.length + 1;
       objects.push(ascii(
-        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth.toFixed(2)} ${pageHeight.toFixed(2)}] ` +
-          `/Resources << /XObject << /${imageName} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] ` +
+          `/Resources << /Font << /F1 ${fontId} 0 R >> /XObject << /${imageName} ${imageId} 0 R >> >> ` +
+          `/Contents ${contentId} 0 R >>`
       ));
       pageReferences.push(`${pageId} 0 R`);
     });

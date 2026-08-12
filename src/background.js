@@ -1,7 +1,6 @@
 /* global chrome */
 
 const DEBUGGER_VERSION = "1.3";
-const CAPTURE_SEGMENT_HEIGHT = 12_000;
 const jobs = new Map();
 
 function sendCommand(tabId, method, params = {}) {
@@ -45,19 +44,42 @@ function waitForTab(tabId, expectedUrl, timeout = 45_000) {
   });
 }
 
-async function navigate(tabId, url) {
+async function loadPage(tabId, url) {
+  const tab = await chrome.tabs.get(tabId);
+  const currentUrl = new URL(tab.url);
+  const targetUrl = new URL(url);
+  currentUrl.hash = "";
+  targetUrl.hash = "";
   const loaded = waitForTab(tabId, url);
-  await chrome.tabs.update(tabId, { url });
+  if (currentUrl.href === targetUrl.href) {
+    await chrome.tabs.reload(tabId);
+  } else {
+    await chrome.tabs.update(tabId, { url });
+  }
   await loaded;
 }
 
-async function autoScroll(tabId) {
+async function preparePage(tabId) {
   const [{ result }] = await chrome.scripting.executeScript({
     target: { tabId },
     func: async () => {
       const delay = (duration) => new Promise((resolve) => setTimeout(resolve, duration));
-      const originalX = window.scrollX;
-      const originalY = window.scrollY;
+      const waitForImages = async (timeout) => {
+        const pending = [...document.images]
+          .filter((image) => !image.complete)
+          .map((image) => new Promise((resolve) => {
+            image.addEventListener("load", resolve, { once: true });
+            image.addEventListener("error", resolve, { once: true });
+          }));
+        await Promise.race([Promise.all(pending), delay(timeout)]);
+      };
+
+      await Promise.race([
+        document.fonts?.ready || Promise.resolve(),
+        delay(5_000)
+      ]);
+      await waitForImages(8_000);
+
       let position = 0;
       let previousHeight = 0;
       let unchanged = 0;
@@ -69,7 +91,7 @@ async function autoScroll(tabId) {
         );
         position = Math.min(position + Math.max(400, Math.floor(window.innerHeight * 0.8)), pageHeight);
         window.scrollTo(0, position);
-        await delay(90);
+        await delay(180);
 
         const updatedHeight = Math.max(
           document.documentElement.scrollHeight,
@@ -80,8 +102,9 @@ async function autoScroll(tabId) {
         if (position >= updatedHeight && unchanged >= 2) break;
       }
 
-      window.scrollTo(originalX, originalY);
-      await delay(250);
+      window.scrollTo(0, 0);
+      await waitForImages(5_000);
+      await delay(750);
       return {
         width: Math.max(document.documentElement.scrollWidth, document.body?.scrollWidth || 0),
         height: Math.max(document.documentElement.scrollHeight, document.body?.scrollHeight || 0)
@@ -91,7 +114,7 @@ async function autoScroll(tabId) {
   return result;
 }
 
-async function capturePage(tabId, profile) {
+async function applyProfile(tabId, profile) {
   await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
     width: profile.width,
     height: profile.height,
@@ -100,17 +123,22 @@ async function capturePage(tabId, profile) {
     screenWidth: profile.width,
     screenHeight: profile.height
   });
-  await pause(250);
-  await autoScroll(tabId);
+}
+
+async function capturePage(tabId, profile, page) {
+  await preparePage(tabId);
 
   const metrics = await sendCommand(tabId, "Page.getLayoutMetrics");
   const size = metrics.cssContentSize || metrics.contentSize;
-  const width = Math.max(1, Math.ceil(size.width));
+  const width = profile.width;
   const fullHeight = Math.max(1, Math.ceil(size.height));
+  const segmentHeight = profile.height;
+  const segmentCount = Math.ceil(fullHeight / segmentHeight);
   const captures = [];
 
-  for (let y = 0; y < fullHeight; y += CAPTURE_SEGMENT_HEIGHT) {
-    const height = Math.min(CAPTURE_SEGMENT_HEIGHT, fullHeight - y);
+  for (let part = 0; part < segmentCount; part += 1) {
+    const y = part * segmentHeight;
+    const height = Math.min(segmentHeight, fullHeight - y);
     const screenshot = await sendCommand(tabId, "Page.captureScreenshot", {
       format: "jpeg",
       quality: 88,
@@ -118,7 +146,17 @@ async function capturePage(tabId, profile) {
       captureBeyondViewport: true,
       clip: { x: 0, y, width, height, scale: 1 }
     });
-    captures.push({ data: screenshot.data, width, height });
+    captures.push({
+      data: screenshot.data,
+      width,
+      height,
+      pageLabel: page.label,
+      pageUrl: page.url,
+      profileLabel: profile.label,
+      viewport: `${profile.width} x ${profile.height}`,
+      part: part + 1,
+      parts: segmentCount
+    });
   }
 
   return captures;
@@ -147,6 +185,11 @@ async function buildPdfUrl(captures) {
 
 async function runCapture(tabId, options) {
   const originalUrl = options.originalUrl;
+  const originalZoom = await chrome.tabs.getZoom(tabId);
+  const [{ result: originalScroll }] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => ({ x: window.scrollX, y: window.scrollY })
+  });
   const captures = [];
   const total = options.pages.length * options.profiles.length;
   let completed = 0;
@@ -161,18 +204,20 @@ async function runCapture(tabId, options) {
   updateBadge(tabId, "0%", "#2563eb");
 
   try {
+    await chrome.tabs.setZoom(tabId, 1);
     await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION);
     await sendCommand(tabId, "Page.enable");
 
     for (const page of options.pages) {
       if (jobs.get(tabId)?.cancelled) throw new Error("Capture cancelled.");
-      publishStatus(tabId, { message: `Loading ${page.label}…` });
-      await navigate(tabId, page.url);
-
       for (const profile of options.profiles) {
         if (jobs.get(tabId)?.cancelled) throw new Error("Capture cancelled.");
+        publishStatus(tabId, { message: `Loading ${page.label} · ${profile.label}…` });
+        await applyProfile(tabId, profile);
+        await loadPage(tabId, page.url);
+        await pause(500);
         publishStatus(tabId, { message: `Capturing ${page.label} · ${profile.label}…` });
-        captures.push(...await capturePage(tabId, profile));
+        captures.push(...await capturePage(tabId, profile, page));
         completed += 1;
         const percentage = Math.round((completed / total) * 100);
         updateBadge(tabId, `${percentage}%`, "#2563eb");
@@ -205,8 +250,14 @@ async function runCapture(tabId, options) {
   } finally {
     await sendCommand(tabId, "Emulation.clearDeviceMetricsOverride").catch(() => {});
     await chrome.debugger.detach({ tabId }).catch(() => {});
+    await chrome.tabs.setZoom(tabId, originalZoom).catch(() => {});
     if (options.restoreOriginal && originalUrl) {
-      await chrome.tabs.update(tabId, { url: originalUrl }).catch(() => {});
+      await loadPage(tabId, originalUrl).catch(() => {});
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: (scroll) => window.scrollTo(scroll.x, scroll.y),
+        args: [originalScroll]
+      }).catch(() => {});
     }
     setTimeout(() => updateBadge(tabId, ""), 8_000);
   }
