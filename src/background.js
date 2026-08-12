@@ -1,6 +1,7 @@
 /* global chrome */
 
 const DEBUGGER_VERSION = "1.3";
+const MAX_CAPTURE_HEIGHT = 12_000;
 const jobs = new Map();
 
 function sendCommand(tabId, method, params = {}) {
@@ -132,7 +133,7 @@ async function capturePage(tabId, profile, page) {
   const size = metrics.cssContentSize || metrics.contentSize;
   const width = profile.width;
   const fullHeight = Math.max(1, Math.ceil(size.height));
-  const segmentHeight = profile.height;
+  const segmentHeight = MAX_CAPTURE_HEIGHT;
   const segmentCount = Math.ceil(fullHeight / segmentHeight);
   const captures = [];
 
@@ -154,8 +155,8 @@ async function capturePage(tabId, profile, page) {
       pageUrl: page.url,
       profileLabel: profile.label,
       viewport: `${profile.width} x ${profile.height}`,
-      part: part + 1,
-      parts: segmentCount
+      offsetY: y,
+      documentHeight: fullHeight
     });
   }
 

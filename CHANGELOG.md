@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 - 2026-08-12
+
+- Preserved each website as a continuous full-page capture instead of enlarging each viewport section.
+- Changed PDF output to portrait Letter pages matching conventional full-page screenshot reports.
+- Split continuous captures only at print-page boundaries.
+- Removed blank remainder sheets caused by one-pixel layout-height differences.
+
 ## 1.1.0 - 2026-08-12
 
 - Fixed incorrect capture widths when Chrome was not at 100% zoom.

@@ -61,41 +61,52 @@
         jpeg
       ));
 
-      const landscape = capture.width >= capture.height;
-      const pageWidth = landscape ? 842 : 595;
-      const pageHeight = landscape ? 595 : 842;
+      const pageWidth = 612;
+      const pageHeight = 792;
       const margin = 28;
       const headerHeight = 30;
       const footerHeight = 20;
       const availableWidth = pageWidth - (margin * 2);
       const availableHeight = pageHeight - (margin * 2) - headerHeight - footerHeight;
-      const scale = Math.min(availableWidth / capture.width, availableHeight / capture.height);
-      const imageWidth = capture.width * scale;
+      const scale = availableWidth / capture.width;
+      const imageWidth = availableWidth;
       const imageHeight = capture.height * scale;
-      const imageX = (pageWidth - imageWidth) / 2;
-      const imageY = margin + footerHeight + ((availableHeight - imageHeight) / 2);
+      const imageX = margin;
+      const imageBaseY = margin + footerHeight;
+      const sourcePageHeight = availableHeight / scale;
       const imageName = `Im${captureIndex + 1}`;
       const header = pdfText(
         `${capture.pageLabel || "Website"} | ${capture.profileLabel || "Capture"} ${capture.viewport || ""}`
       );
-      const footer = pdfText(
-        `${capture.pageUrl || ""} | Section ${capture.part || 1} of ${capture.parts || 1}`
-      );
-      const drawing = ascii(
-        `BT\n/F1 10 Tf\n${margin} ${pageHeight - margin - 10} Td\n(${header}) Tj\nET\n` +
-        `q\n${imageWidth.toFixed(2)} 0 0 ${imageHeight.toFixed(2)} ${imageX.toFixed(2)} ${imageY.toFixed(2)} cm\n/${imageName} Do\nQ\n` +
-        `BT\n/F1 7 Tf\n${margin} ${margin - 2} Td\n(${footer}) Tj\nET`
-      );
-      const contentId = objects.length + 1;
-      objects.push(streamObject("", drawing));
+      const documentHeight = capture.documentHeight || capture.height;
+      const documentOffset = capture.offsetY || 0;
+      const totalParts = Math.ceil(documentHeight / sourcePageHeight);
 
-      const pageId = objects.length + 1;
-      objects.push(ascii(
-        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] ` +
-          `/Resources << /Font << /F1 ${fontId} 0 R >> /XObject << /${imageName} ${imageId} 0 R >> >> ` +
-          `/Contents ${contentId} 0 R >>`
-      ));
-      pageReferences.push(`${pageId} 0 R`);
+      for (let sourceY = 0; sourceY < capture.height - 0.5; sourceY += sourcePageHeight) {
+        const part = Math.floor((documentOffset + sourceY) / sourcePageHeight) + 1;
+        const footer = pdfText(
+          `${capture.pageUrl || ""} | Page ${Math.min(part, totalParts)} of ${totalParts}`
+        );
+        const sourceFromBottom = Math.max(0, capture.height - sourceY - sourcePageHeight);
+        const translatedY = imageBaseY - (sourceFromBottom * scale);
+        const drawing = ascii(
+          `BT\n/F1 10 Tf\n${margin} ${pageHeight - margin - 10} Td\n(${header}) Tj\nET\n` +
+          `q\n${margin} ${imageBaseY} ${availableWidth} ${availableHeight} re W n\n` +
+          `${imageWidth.toFixed(2)} 0 0 ${imageHeight.toFixed(2)} ${imageX.toFixed(2)} ${translatedY.toFixed(2)} cm\n` +
+          `/${imageName} Do\nQ\n` +
+          `BT\n/F1 7 Tf\n${margin} ${margin - 2} Td\n(${footer}) Tj\nET`
+        );
+        const contentId = objects.length + 1;
+        objects.push(streamObject("", drawing));
+
+        const pageId = objects.length + 1;
+        objects.push(ascii(
+          `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] ` +
+            `/Resources << /Font << /F1 ${fontId} 0 R >> /XObject << /${imageName} ${imageId} 0 R >> >> ` +
+            `/Contents ${contentId} 0 R >>`
+        ));
+        pageReferences.push(`${pageId} 0 R`);
+      }
     });
 
     objects[0] = ascii("<< /Type /Catalog /Pages 2 0 R >>");

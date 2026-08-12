@@ -23,8 +23,8 @@ test("creates a structurally complete PDF from a JPEG capture", () => {
       profileLabel: "Desktop",
       viewport: "1440 x 900",
       pageUrl: "https://example.com/",
-      part: 1,
-      parts: 1
+      offsetY: 0,
+      documentHeight: 900
     }
   ]);
   const text = Buffer.from(pdf).toString("latin1");
@@ -32,20 +32,41 @@ test("creates a structurally complete PDF from a JPEG capture", () => {
   assert.ok(text.startsWith("%PDF-1.4"));
   assert.match(text, /\/Count 1/);
   assert.match(text, /\/Subtype \/Image/);
-  assert.match(text, /\/MediaBox \[0 0 842 595\]/);
+  assert.match(text, /\/MediaBox \[0 0 612 792\]/);
   assert.match(text, /Home \\| Desktop 1440 x 900/);
-  assert.match(text, /https:\/\/example.com\/ \\| Section 1 of 1/);
+  assert.match(text, /https:\/\/example.com\/ \\| Page 1 of 1/);
   assert.ok(text.endsWith("%%EOF"));
 });
 
-test("uses a portrait A4 page for mobile captures", () => {
+test("uses portrait Letter pages for every responsive capture", () => {
   const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString("base64");
   const pdf = context.self.BrowserSnapsPdf.createPdf([
     { data: jpeg, width: 390, height: 844, profileLabel: "Mobile" }
   ]);
   const text = Buffer.from(pdf).toString("latin1");
 
-  assert.match(text, /\/MediaBox \[0 0 595 842\]/);
+  assert.match(text, /\/MediaBox \[0 0 612 792\]/);
+});
+
+test("paginates one continuous full-page screenshot at print boundaries", () => {
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xd9]).toString("base64");
+  const pdf = context.self.BrowserSnapsPdf.createPdf([
+    {
+      data: jpeg,
+      width: 1440,
+      height: 6300,
+      pageLabel: "Home",
+      profileLabel: "Desktop",
+      pageUrl: "https://example.com/",
+      offsetY: 0,
+      documentHeight: 6300
+    }
+  ]);
+  const text = Buffer.from(pdf).toString("latin1");
+
+  assert.match(text, /\/Count 4/);
+  assert.match(text, /Page 1 of 4/);
+  assert.match(text, /Page 4 of 4/);
 });
 
 test("rejects an empty capture set", () => {

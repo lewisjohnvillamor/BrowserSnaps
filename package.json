@@ -1,6 +1,6 @@
 {
   "name": "browser-snaps",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "A lightweight Chrome extension for capturing website navigation pages into PDF.",
   "author": "Lewis John Villamor",
