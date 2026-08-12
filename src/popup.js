@@ -1,0 +1,190 @@
+/* global chrome */
+
+const PROFILES = [
+  { id: "desktop", label: "Desktop", width: 1440, height: 900, mobile: false, checked: true },
+  { id: "laptop", label: "Laptop", width: 1366, height: 768, mobile: false, checked: false },
+  { id: "tablet", label: "Tablet", width: 768, height: 1024, mobile: true, checked: false },
+  { id: "mobile", label: "Mobile", width: 390, height: 844, mobile: true, checked: false }
+];
+
+const elements = {
+  siteTitle: document.querySelector("#site-title"),
+  siteUrl: document.querySelector("#site-url"),
+  pageList: document.querySelector("#page-list"),
+  profileList: document.querySelector("#profile-list"),
+  capture: document.querySelector("#capture"),
+  cancel: document.querySelector("#cancel"),
+  restore: document.querySelector("#restore-original"),
+  status: document.querySelector("#status"),
+  statusText: document.querySelector("#status-text"),
+  statusCount: document.querySelector("#status-count"),
+  progressBar: document.querySelector("#progress-bar"),
+  error: document.querySelector("#error")
+};
+
+let activeTab;
+let pages = [];
+
+function escapeText(value) {
+  const span = document.createElement("span");
+  span.textContent = value;
+  return span.innerHTML;
+}
+
+function showError(message) {
+  elements.error.textContent = message;
+  elements.error.hidden = false;
+}
+
+function renderProfiles() {
+  elements.profileList.innerHTML = PROFILES.map((profile) => `
+    <label class="profile">
+      <input type="checkbox" value="${profile.id}" ${profile.checked ? "checked" : ""}>
+      <span><strong>${profile.label}</strong><span>${profile.width} × ${profile.height}</span></span>
+    </label>
+  `).join("");
+}
+
+function renderPages() {
+  elements.pageList.classList.remove("loading-list");
+  elements.pageList.innerHTML = pages.map((page, index) => {
+    const path = new URL(page.url).pathname || "/";
+    return `
+      <label class="check-item">
+        <input type="checkbox" value="${index}" ${index === 0 ? "checked" : ""}>
+        <span class="check-copy">
+          <strong>${escapeText(page.label)}</strong>
+          <span>${escapeText(path)}</span>
+        </span>
+      </label>
+    `;
+  }).join("");
+}
+
+async function discoverPages() {
+  [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!activeTab?.id || !/^https?:/.test(activeTab.url || "")) {
+    throw new Error("Open a normal http:// or https:// website before using BrowserSnaps.");
+  }
+
+  elements.siteTitle.textContent = activeTab.title || "Untitled page";
+  elements.siteUrl.textContent = activeTab.url;
+
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId: activeTab.id },
+    func: () => {
+      const current = new URL(window.location.href);
+      current.hash = "";
+      const found = [{ label: document.title || "Current page", url: current.href }];
+      const seen = new Set([current.href]);
+      const selectors = "nav a[href], [role='navigation'] a[href], header a[href]";
+
+      for (const anchor of document.querySelectorAll(selectors)) {
+        try {
+          const url = new URL(anchor.href, window.location.href);
+          url.hash = "";
+          if (!/^https?:$/.test(url.protocol) || url.origin !== current.origin || seen.has(url.href)) continue;
+          const label = (anchor.innerText || anchor.getAttribute("aria-label") || anchor.title || url.pathname)
+            .replace(/\s+/g, " ")
+            .trim();
+          if (!label) continue;
+          seen.add(url.href);
+          found.push({ label: label.slice(0, 100), url: url.href });
+          if (found.length >= 100) break;
+        } catch (_) {
+          // Ignore malformed or non-web links.
+        }
+      }
+      return found;
+    }
+  });
+
+  pages = result;
+  renderPages();
+}
+
+function selectedPages() {
+  return [...elements.pageList.querySelectorAll("input:checked")].map((input) => pages[Number(input.value)]);
+}
+
+function selectedProfiles() {
+  const selected = new Set([...elements.profileList.querySelectorAll("input:checked")].map((input) => input.value));
+  return PROFILES.filter((profile) => selected.has(profile.id));
+}
+
+function setRunning(running) {
+  elements.capture.hidden = running;
+  elements.cancel.hidden = !running;
+  elements.status.hidden = !running;
+  document.querySelectorAll("input, #select-all, #select-none").forEach((control) => {
+    control.disabled = running;
+  });
+}
+
+function applyStatus(status) {
+  if (!status || (!status.running && !status.message)) return;
+  setRunning(Boolean(status.running));
+  elements.status.hidden = false;
+  elements.statusText.textContent = status.message || "Working…";
+  const completed = status.completed || 0;
+  const total = status.total || 0;
+  elements.statusCount.textContent = total ? `${completed}/${total}` : "";
+  elements.progressBar.style.width = total ? `${Math.round((completed / total) * 100)}%` : "4%";
+  if (status.error) showError(status.message);
+}
+
+document.querySelector("#select-all").addEventListener("click", () => {
+  elements.pageList.querySelectorAll("input").forEach((input) => { input.checked = true; });
+});
+
+document.querySelector("#select-none").addEventListener("click", () => {
+  elements.pageList.querySelectorAll("input").forEach((input) => { input.checked = false; });
+});
+
+elements.capture.addEventListener("click", async () => {
+  elements.error.hidden = true;
+  const chosenPages = selectedPages();
+  const profiles = selectedProfiles();
+  if (!chosenPages.length) return showError("Select at least one page.");
+  if (!profiles.length) return showError("Select at least one screen size.");
+
+  setRunning(true);
+  applyStatus({ running: true, completed: 0, total: chosenPages.length * profiles.length, message: "Starting capture…" });
+  const response = await chrome.runtime.sendMessage({
+    type: "START_CAPTURE",
+    tabId: activeTab.id,
+    options: {
+      originalUrl: activeTab.url,
+      pages: chosenPages,
+      profiles,
+      restoreOriginal: elements.restore.checked
+    }
+  });
+  if (!response?.ok) {
+    setRunning(false);
+    showError(response?.error || "BrowserSnaps could not start the capture.");
+  }
+});
+
+elements.cancel.addEventListener("click", async () => {
+  await chrome.runtime.sendMessage({ type: "CANCEL_CAPTURE", tabId: activeTab.id });
+  elements.statusText.textContent = "Cancelling after the current screenshot…";
+});
+
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === "CAPTURE_STATUS") applyStatus(message.status);
+});
+
+(async () => {
+  renderProfiles();
+  try {
+    await discoverPages();
+    const status = await chrome.runtime.sendMessage({ type: "GET_STATUS", tabId: activeTab.id });
+    applyStatus(status);
+  } catch (error) {
+    elements.pageList.classList.remove("loading-list");
+    elements.pageList.textContent = "No pages available.";
+    elements.capture.disabled = true;
+    showError(error.message);
+  }
+})();

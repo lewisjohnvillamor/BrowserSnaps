@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BrowserSnaps</title>
+    <link rel="stylesheet" href="popup.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="brand">
+        <div class="brand-mark" aria-hidden="true"><span></span></div>
+        <div>
+          <h1>BrowserSnaps</h1>
+          <p>Selected pages. Every screen. One PDF.</p>
+        </div>
+      </header>
+
+      <section class="site-card" aria-live="polite">
+        <span class="site-label">Active website</span>
+        <strong id="site-title">Reading this page…</strong>
+        <span id="site-url" class="site-url"></span>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <span class="step">1</span>
+            <h2>Pages</h2>
+          </div>
+          <div class="inline-actions">
+            <button id="select-all" class="text-button" type="button">All</button>
+            <button id="select-none" class="text-button" type="button">None</button>
+          </div>
+        </div>
+        <p class="hint">Navigation links found on the active page.</p>
+        <div id="page-list" class="check-list loading-list">
+          <span class="skeleton"></span><span class="skeleton short"></span>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <span class="step">2</span>
+            <h2>Screen sizes</h2>
+          </div>
+        </div>
+        <div id="profile-list" class="profile-grid"></div>
+      </section>
+
+      <label class="restore-row">
+        <input id="restore-original" type="checkbox" checked>
+        <span>Return to the original page when finished</span>
+      </label>
+
+      <div id="status" class="status" hidden>
+        <div class="status-row">
+          <span id="status-text">Preparing capture…</span>
+          <span id="status-count"></span>
+        </div>
+        <div class="progress-track"><span id="progress-bar"></span></div>
+      </div>
+
+      <p id="error" class="error" hidden></p>
+      <button id="capture" class="primary-button" type="button">Capture selected pages</button>
+      <button id="cancel" class="secondary-button" type="button" hidden>Cancel capture</button>
+
+      <footer>
+        <span>Open source · MIT</span>
+        <a href="https://www.paypal.com/paypalme/lewisjohnvillamor/199" target="_blank" rel="noreferrer">Support BrowserSnaps</a>
+      </footer>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>
