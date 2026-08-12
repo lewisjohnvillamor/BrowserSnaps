@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 - 2026-08-12
+
+- Replaced oversized single-shot captures with real visible-viewport scrolling and tile stitching.
+- Made the active tab's current browser dimensions the default capture size.
+- Added an overlap and settling delay between tiles for lazy-loaded and scroll-triggered sections.
+- Neutralized animations and repeated fixed or sticky elements while capturing.
+- Closed the popup before capture so it cannot cover the first screenshot tile.
+- Removed report headers and footers to give the captured website more printable area.
+
 ## 1.2.0 - 2026-08-12
 
 - Preserved each website as a continuous full-page capture instead of enlarging each viewport section.

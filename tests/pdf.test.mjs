@@ -33,8 +33,8 @@ test("creates a structurally complete PDF from a JPEG capture", () => {
   assert.match(text, /\/Count 1/);
   assert.match(text, /\/Subtype \/Image/);
   assert.match(text, /\/MediaBox \[0 0 612 792\]/);
-  assert.match(text, /Home \\| Desktop 1440 x 900/);
-  assert.match(text, /https:\/\/example.com\/ \\| Page 1 of 1/);
+  assert.doesNotMatch(text, /Home \\| Desktop/);
+  assert.doesNotMatch(text, /https:\/\/example.com/);
   assert.ok(text.endsWith("%%EOF"));
 });
 
@@ -65,8 +65,7 @@ test("paginates one continuous full-page screenshot at print boundaries", () => 
   const text = Buffer.from(pdf).toString("latin1");
 
   assert.match(text, /\/Count 4/);
-  assert.match(text, /Page 1 of 4/);
-  assert.match(text, /Page 4 of 4/);
+  assert.doesNotMatch(text, /Page 1 of 4/);
 });
 
 test("rejects an empty capture set", () => {

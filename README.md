@@ -4,20 +4,21 @@ Capture the current website's navigation pages at one or more screen sizes and s
 
 ![BrowserSnaps extension popup](docs/screenshots/browser-snaps-popup.png)
 
-BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses your active tab and existing signed-in browser session, discovers same-site navigation links, scrolls each selected page to load lazy content, and takes full-page captures using Chrome's built-in debugging protocol.
+BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses your active tab and existing signed-in browser session, discovers same-site navigation links, scrolls through each selected page, captures every visible viewport, and stitches the tiles into a full-page image before creating the PDF.
 
 ## What it does
 
 - Works from the website currently open in the active tab
 - Finds links inside `nav`, navigation roles, and page headers
 - Lets you tick only the pages you want
-- Captures Desktop, Laptop, Tablet, and Mobile viewport presets
-- Auto-scrolls before capture so lazy-loaded sections appear
+- Captures the current browser size by default, plus Desktop, Laptop, Tablet, and Mobile presets
+- Scrolls in measured viewport steps with overlap so lazy and scroll-triggered sections appear
 - Waits for web fonts, images, and responsive content before capture
 - Normalizes browser zoom so every preset uses its exact advertised width
 - Reloads every route at every selected screen size
-- Keeps each website as one continuous full-page capture and cuts it only at print-page boundaries
-- Paginates long captures onto labeled portrait Letter sheets instead of oversized PDF pages
+- Neutralizes animation and repeating fixed or sticky elements during capture
+- Stitches the viewport tiles into one continuous full-page image
+- Paginates long captures onto clean portrait Letter sheets instead of oversized PDF pages
 - Combines every capture into one local PDF
 - Restores the original page, browser zoom, and scroll position when finished
 - Sends no website data to a server
@@ -44,9 +45,9 @@ BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses yo
 1. Open the website you want to document. Sign in first if the site is private.
 2. Select the BrowserSnaps icon in Chrome's toolbar.
 3. Tick the navigation pages to capture.
-4. Tick one or more screen sizes. **Desktop 1440 × 900** is selected by default.
+4. Tick one or more screen sizes. **Current tab** is selected by default and uses the browser size you can see.
 5. Select **Capture selected pages**.
-6. Approve Chrome's debugging notice if it appears. Keep the working tab open while BrowserSnaps visits the selected pages.
+6. The popup closes so it cannot cover the page. Approve Chrome's debugging notice if it appears, and keep that tab active while BrowserSnaps scrolls through the selected pages.
 7. Choose where to save the generated PDF.
 
 The blue badge shows progress. A green check means the PDF was created. BrowserSnaps restores the original page unless you turn that option off.
@@ -57,12 +58,13 @@ The blue badge shows progress. A green check means the PDF was created. BrowserS
 
 | Preset | Viewport | Mode |
 | --- | ---: | --- |
+| Current tab | Your visible browser viewport | Desktop |
 | Desktop | 1440 × 900 | Desktop |
 | Laptop | 1366 × 768 | Desktop |
 | Tablet | 768 × 1024 | Touch/mobile layout |
 | Mobile | 390 × 844 | Touch/mobile layout |
 
-Each checked page is captured once per checked screen size. BrowserSnaps preserves the page as one continuous image, scales its full width to portrait Letter paper, and continues vertically across labeled PDF sheets. It does not enlarge each browser viewport into a separate sheet.
+Each checked page is captured once per checked screen size. BrowserSnaps scrolls the real page, waits for the layout to settle, captures overlapping viewport tiles, stitches them into one continuous image, scales that image to portrait Letter paper, and continues vertically across clean PDF sheets.
 
 ## Permissions and privacy
 
@@ -70,7 +72,7 @@ Each checked page is captured once per checked screen size. BrowserSnaps preserv
 | --- | --- |
 | `activeTab` | Reads and operates only on the tab where you open BrowserSnaps |
 | `scripting` | Discovers navigation links and auto-scrolls pages |
-| `debugger` | Emulates selected viewports and captures beyond the visible area |
+| `debugger` | Emulates the optional responsive viewport presets |
 | `downloads` | Saves the finished PDF |
 | `offscreen` | Builds a local PDF without keeping the popup open |
 
@@ -83,7 +85,7 @@ BrowserSnaps has no analytics, remote code, accounts, or backend. Captures and p
 - Some sites block automation or change content based on viewport, cookie consent, animations, or login state.
 - Video frames, WebGL canvases, and content inside cross-origin iframes may not appear consistently.
 - Long pages remain visually continuous and are divided only at portrait Letter print boundaries.
-- Keep the source tab open until the job completes.
+- Keep the source tab open and active until the job completes. Chrome only allows a normal extension to capture the currently visible tab.
 
 ## Development
 

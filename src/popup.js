@@ -1,7 +1,8 @@
 /* global chrome */
 
 const PROFILES = [
-  { id: "desktop", label: "Desktop", width: 1440, height: 900, mobile: false, checked: true },
+  { id: "current", label: "Current tab", width: 0, height: 0, mobile: false, checked: true },
+  { id: "desktop", label: "Desktop", width: 1440, height: 900, mobile: false, checked: false },
   { id: "laptop", label: "Laptop", width: 1366, height: 768, mobile: false, checked: false },
   { id: "tablet", label: "Tablet", width: 768, height: 1024, mobile: true, checked: false },
   { id: "mobile", label: "Mobile", width: 390, height: 844, mobile: true, checked: false }
@@ -40,7 +41,7 @@ function renderProfiles() {
   elements.profileList.innerHTML = PROFILES.map((profile) => `
     <label class="profile">
       <input type="checkbox" value="${profile.id}" ${profile.checked ? "checked" : ""}>
-      <span><strong>${profile.label}</strong><span>${profile.width} × ${profile.height}</span></span>
+      <span><strong>${profile.label}</strong><span>${profile.width ? `${profile.width} × ${profile.height}` : "Detecting…"}</span></span>
     </label>
   `).join("");
 }
@@ -95,11 +96,18 @@ async function discoverPages() {
           // Ignore malformed or non-web links.
         }
       }
-      return found;
+      return {
+        pages: found,
+        viewport: { width: window.innerWidth, height: window.innerHeight }
+      };
     }
   });
 
-  pages = result;
+  pages = result.pages;
+  const current = PROFILES.find((profile) => profile.id === "current");
+  current.width = result.viewport.width;
+  current.height = result.viewport.height;
+  renderProfiles();
   renderPages();
 }
 
@@ -163,7 +171,9 @@ elements.capture.addEventListener("click", async () => {
   if (!response?.ok) {
     setRunning(false);
     showError(response?.error || "BrowserSnaps could not start the capture.");
+    return;
   }
+  window.close();
 });
 
 elements.cancel.addEventListener("click", async () => {
