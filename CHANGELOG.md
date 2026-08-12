@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0 - 2026-08-12
+
+- Added a dedicated capture-window mode so the main Chrome window remains available during long jobs.
+- Added a local full-page results viewer with capture navigation, zoom, and per-capture export selection.
+- Added PDF, PNG, and combined PDF + PNG downloads.
+- Added single combined downloads and separate downloads grouped by screen size.
+- Added a dependency-free ZIP writer for multi-image and combined exports.
+- Stored results locally for up to 24 hours and automatically removed expired sessions.
+- Restored the working tab to its original window, position, URL, zoom, pin state, and scroll position.
+
 ## 1.3.0 - 2026-08-12
 
 - Replaced oversized single-shot captures with real visible-viewport scrolling and tile stitching.

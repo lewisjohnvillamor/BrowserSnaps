@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "BrowserSnaps",
-  "description": "Capture selected navigation pages at multiple screen sizes into one PDF.",
-  "version": "1.3.0",
+  "description": "Capture selected navigation pages at multiple screen sizes as PDF or PNG.",
+  "version": "1.4.0",
   "minimum_chrome_version": "116",
   "author": "Lewis John Villamor",
   "permissions": [
     "activeTab",
+    "alarms",
     "debugger",
     "downloads",
     "offscreen",

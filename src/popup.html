@@ -12,7 +12,7 @@
         <div class="brand-mark" aria-hidden="true"><span></span></div>
         <div>
           <h1>BrowserSnaps</h1>
-          <p>Selected pages. Every screen. One PDF.</p>
+          <p>Selected pages. Every screen. Your format.</p>
         </div>
       </header>
 
@@ -49,7 +49,38 @@
         <div id="profile-list" class="profile-grid"></div>
       </section>
 
-      <label class="restore-row">
+      <section class="section">
+        <div class="section-heading">
+          <div>
+            <span class="step">3</span>
+            <h2>Output</h2>
+          </div>
+        </div>
+        <div class="output-grid">
+          <label>
+            <span>Format</span>
+            <select id="output-format">
+              <option value="both">PDF + PNG</option>
+              <option value="pdf">PDF only</option>
+              <option value="png">PNG only</option>
+            </select>
+          </label>
+          <label>
+            <span>Files</span>
+            <select id="output-layout">
+              <option value="combined">One combined download</option>
+              <option value="profile">Separate by screen size</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <label class="option-row">
+        <input id="dedicated-window" type="checkbox" checked>
+        <span><strong>Use a capture window</strong><small>Continue working in your main Chrome window.</small></span>
+      </label>
+
+      <label class="option-row compact">
         <input id="restore-original" type="checkbox" checked>
         <span>Return to the original page when finished</span>
       </label>

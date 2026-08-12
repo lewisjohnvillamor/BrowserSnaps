@@ -1,10 +1,10 @@
 # BrowserSnaps
 
-Capture the current website's navigation pages at one or more screen sizes and save everything into a readable, paginated PDF — directly from Chrome.
+Capture the current website's navigation pages at one or more screen sizes, review the results, and export them as PDF or PNG — directly from Chrome.
 
 ![BrowserSnaps extension popup](docs/screenshots/browser-snaps-popup.png)
 
-BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses your active tab and existing signed-in browser session, discovers same-site navigation links, scrolls through each selected page, captures every visible viewport, and stitches the tiles into a full-page image before creating the PDF.
+BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses your active tab and existing signed-in browser session, discovers same-site navigation links, scrolls through each selected page, captures every visible viewport, and stitches the tiles into a full-page image. A local results viewer then lets you download PDF, PNG, or both.
 
 ## What it does
 
@@ -19,7 +19,10 @@ BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses yo
 - Neutralizes animation and repeating fixed or sticky elements during capture
 - Stitches the viewport tiles into one continuous full-page image
 - Paginates long captures onto clean portrait Letter sheets instead of oversized PDF pages
-- Combines every capture into one local PDF
+- Opens a local full-page viewer with zoom and capture selection
+- Exports PDF, PNG, or a ZIP containing both
+- Combines all results or separates them by screen size
+- Uses a dedicated capture window so your main Chrome window remains usable
 - Restores the original page, browser zoom, and scroll position when finished
 - Sends no website data to a server
 - Requires no build step and has no production dependencies
@@ -46,11 +49,13 @@ BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses yo
 2. Select the BrowserSnaps icon in Chrome's toolbar.
 3. Tick the navigation pages to capture.
 4. Tick one or more screen sizes. **Current tab** is selected by default and uses the browser size you can see.
-5. Select **Capture selected pages**.
-6. The popup closes so it cannot cover the page. Approve Chrome's debugging notice if it appears, and keep that tab active while BrowserSnaps scrolls through the selected pages.
-7. Choose where to save the generated PDF.
+5. Choose PDF, PNG, or both, then choose one combined download or separate files by screen size.
+6. Leave **Use a capture window** checked if you want to continue working in your main Chrome window.
+7. Select **Capture selected pages** and approve Chrome's debugging notice if it appears.
+8. Keep the dedicated capture window open and unminimized. It may remain behind your main window.
+9. Review the stitched captures, untick anything you do not want, then select PDF, PNG, or PDF + PNG.
 
-The blue badge shows progress. A green check means the PDF was created. BrowserSnaps restores the original page unless you turn that option off.
+The blue badge shows progress. A green check means the results are ready. BrowserSnaps restores the working tab to its original window unless you turn restoration off.
 
 > Chrome shows a debugging banner while full-page viewport emulation is active. This is expected: the extension uses the official `chrome.debugger` API and detaches as soon as the capture finishes or is cancelled.
 
@@ -66,15 +71,25 @@ The blue badge shows progress. A green check means the PDF was created. BrowserS
 
 Each checked page is captured once per checked screen size. BrowserSnaps scrolls the real page, waits for the layout to settle, captures overlapping viewport tiles, stitches them into one continuous image, scales that image to portrait Letter paper, and continues vertically across clean PDF sheets.
 
+## Export organization
+
+| Selection | PDF | PNG | PDF + PNG |
+| --- | --- | --- | --- |
+| One combined download | One PDF | One PNG or one ZIP of PNGs | One ZIP containing the combined PDF and PNGs |
+| Separate by screen size | One PDF per size | One PNG or ZIP per size | One ZIP per size containing its PDF and PNGs |
+
+Capture results are stored only in Chrome's local extension storage and automatically expire after 24 hours.
+
 ## Permissions and privacy
 
 | Permission | Why it is needed |
 | --- | --- |
 | `activeTab` | Reads and operates only on the tab where you open BrowserSnaps |
+| `alarms` | Removes locally stored capture sessions after 24 hours |
 | `scripting` | Discovers navigation links and auto-scrolls pages |
 | `debugger` | Emulates the optional responsive viewport presets |
-| `downloads` | Saves the finished PDF |
-| `offscreen` | Builds a local PDF without keeping the popup open |
+| `downloads` | Saves PDF, PNG, and ZIP results |
+| `offscreen` | Stitches full-page images without keeping the popup open |
 
 BrowserSnaps has no analytics, remote code, accounts, or backend. Captures and page URLs stay inside your browser. Review [`manifest.json`](manifest.json) and the source in [`src/`](src/) to verify the behavior.
 
@@ -85,7 +100,8 @@ BrowserSnaps has no analytics, remote code, accounts, or backend. Captures and p
 - Some sites block automation or change content based on viewport, cookie consent, animations, or login state.
 - Video frames, WebGL canvases, and content inside cross-origin iframes may not appear consistently.
 - Long pages remain visually continuous and are divided only at portrait Letter print boundaries.
-- Keep the source tab open and active until the job completes. Chrome only allows a normal extension to capture the currently visible tab.
+- The capture tab or dedicated capture window must remain open and unminimized until the job completes.
+- Without dedicated-window mode, keep the source tab active. With it enabled, work in another Chrome window while the capture window stays open behind it.
 
 ## Development
 
@@ -96,7 +112,7 @@ npm run check
 npm test
 ```
 
-The small test suite validates the built-in PDF writer. The demo page used in the documentation is at [`docs/demo-site/index.html`](docs/demo-site/index.html).
+The small test suite validates the built-in PDF and ZIP writers. The demo page used in the documentation is at [`docs/demo-site/index.html`](docs/demo-site/index.html).
 
 ## Contributing
 

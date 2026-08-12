@@ -15,6 +15,9 @@ const elements = {
   profileList: document.querySelector("#profile-list"),
   capture: document.querySelector("#capture"),
   cancel: document.querySelector("#cancel"),
+  dedicated: document.querySelector("#dedicated-window"),
+  outputFormat: document.querySelector("#output-format"),
+  outputLayout: document.querySelector("#output-layout"),
   restore: document.querySelector("#restore-original"),
   status: document.querySelector("#status"),
   statusText: document.querySelector("#status-text"),
@@ -165,6 +168,9 @@ elements.capture.addEventListener("click", async () => {
       originalUrl: activeTab.url,
       pages: chosenPages,
       profiles,
+      dedicatedWindow: elements.dedicated.checked,
+      outputFormat: elements.outputFormat.value,
+      outputLayout: elements.outputLayout.value,
       restoreOriginal: elements.restore.checked
     }
   });

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>BrowserSnaps Results</title>
+    <link rel="stylesheet" href="results.css">
+  </head>
+  <body>
+    <header class="toolbar">
+      <div class="brand"><span class="camera" aria-hidden="true"></span><strong>BrowserSnaps</strong></div>
+      <div class="toolbar-center">
+        <button id="previous" type="button" title="Previous capture">‹</button>
+        <span id="counter">0 / 0</span>
+        <button id="next" type="button" title="Next capture">›</button>
+        <button id="zoom-out" type="button" title="Zoom out">−</button>
+        <span id="zoom-value">Fit</span>
+        <button id="zoom-in" type="button" title="Zoom in">+</button>
+      </div>
+      <div class="downloads">
+        <select id="layout" aria-label="File organization">
+          <option value="combined">One combined download</option>
+          <option value="profile">Separate by screen size</option>
+        </select>
+        <button id="download-pdf" type="button">PDF</button>
+        <button id="download-png" type="button">PNG</button>
+        <button id="download-both" class="primary" type="button">PDF + PNG</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside>
+        <div class="session-copy">
+          <span>Capture results</span>
+          <strong id="session-title">Loading…</strong>
+          <small id="session-host"></small>
+        </div>
+        <div class="selection-row">
+          <button id="select-all" type="button">Select all</button>
+          <button id="select-none" type="button">Select none</button>
+        </div>
+        <div id="capture-list" class="capture-list"></div>
+        <p class="privacy">Stored locally and automatically removed after 24 hours.</p>
+      </aside>
+
+      <main id="viewer" class="viewer">
+        <div id="loading" class="loading">Preparing preview…</div>
+        <figure id="preview" hidden>
+          <img id="capture-image" alt="Full-page website capture">
+          <figcaption>
+            <strong id="capture-title"></strong>
+            <span id="capture-meta"></span>
+          </figcaption>
+        </figure>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+    <script src="storage.js"></script>
+    <script src="pdf.js"></script>
+    <script src="zip.js"></script>
+    <script src="results.js"></script>
+  </body>
+</html>

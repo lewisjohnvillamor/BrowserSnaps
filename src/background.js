@@ -1,9 +1,22 @@
-/* global chrome */
+/* global BrowserSnapsStore, chrome, importScripts */
+
+importScripts("storage.js");
 
 const DEBUGGER_VERSION = "1.3";
 const TILE_OVERLAP = 80;
 const TILE_DELAY = 450;
 const jobs = new Map();
+
+function scheduleCleanup() {
+  chrome.alarms.create("cleanup-captures", { periodInMinutes: 60 });
+  BrowserSnapsStore.cleanup().catch(() => {});
+}
+
+chrome.runtime.onInstalled.addListener(scheduleCleanup);
+chrome.runtime.onStartup.addListener(scheduleCleanup);
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "cleanup-captures") BrowserSnapsStore.cleanup().catch(() => {});
+});
 
 function sendCommand(tabId, method, params = {}) {
   return chrome.debugger.sendCommand({ tabId }, method, params);
@@ -257,6 +270,7 @@ async function capturePage(tabId, windowId, profile, page) {
   return {
     pageLabel: page.label,
     pageUrl: page.url,
+    profileId: profile.id,
     profileLabel: profile.label,
     viewport: `${metrics.width} x ${metrics.height}`,
     viewportWidth: metrics.width,
@@ -266,25 +280,88 @@ async function capturePage(tabId, windowId, profile, page) {
   };
 }
 
-function safeFilename(hostname) {
-  const date = new Date().toISOString().replace(/[:.]/g, "-");
-  return `BrowserSnaps-${hostname.replace(/[^a-z0-9.-]/gi, "-")}-${date}.pdf`;
-}
-
 async function ensureOffscreenDocument() {
   if (await chrome.offscreen.hasDocument()) return;
   await chrome.offscreen.createDocument({
     url: "src/offscreen.html",
     reasons: ["BLOBS"],
-    justification: "Stitch viewport tiles and assemble the local PDF download."
+    justification: "Stitch viewport tiles and store local capture results."
   });
 }
 
-async function buildPdfUrl(groups) {
+async function processCaptures(groups, session) {
   await ensureOffscreenDocument();
-  const response = await chrome.runtime.sendMessage({ type: "BUILD_PDF", groups });
-  if (!response?.ok) throw new Error(response?.error || "The PDF could not be created.");
-  return response.url;
+  const response = await chrome.runtime.sendMessage({ type: "PROCESS_CAPTURES", groups, session });
+  if (!response?.ok) throw new Error(response?.error || "The captures could not be processed.");
+  return response.sessionId;
+}
+
+async function createCaptureWorkspace(tabId, originalTab, enabled) {
+  const workspace = {
+    dedicated: false,
+    windowId: originalTab.windowId,
+    originalWindowId: originalTab.windowId,
+    originalIndex: originalTab.index,
+    originalPinned: originalTab.pinned,
+    placeholderTabId: null,
+    captureWindowId: null
+  };
+  if (!enabled) return workspace;
+
+  const originalWindow = await chrome.windows.get(originalTab.windowId);
+  const tabs = await chrome.tabs.query({ windowId: originalTab.windowId });
+  try {
+    if (tabs.length === 1) {
+      const placeholder = await chrome.tabs.create({
+        windowId: originalTab.windowId,
+        active: false
+      });
+      workspace.placeholderTabId = placeholder.id;
+    }
+
+    if (originalTab.pinned) await chrome.tabs.update(tabId, { pinned: false });
+    const createData = {
+      tabId,
+      type: "normal",
+      focused: false,
+      incognito: originalWindow.incognito
+    };
+    if (originalWindow.width) createData.width = originalWindow.width;
+    if (originalWindow.height) createData.height = originalWindow.height;
+    const captureWindow = await chrome.windows.create(createData);
+    workspace.dedicated = true;
+    workspace.windowId = captureWindow.id;
+    workspace.captureWindowId = captureWindow.id;
+    await chrome.windows.update(originalTab.windowId, { focused: true }).catch(() => {});
+    await pause(400);
+    return workspace;
+  } catch (error) {
+    if (workspace.placeholderTabId) await chrome.tabs.remove(workspace.placeholderTabId).catch(() => {});
+    if (originalTab.pinned) await chrome.tabs.update(tabId, { pinned: true }).catch(() => {});
+    throw error;
+  }
+}
+
+async function restoreCaptureWorkspace(tabId, workspace) {
+  if (!workspace?.dedicated) return;
+  const originalWindow = await chrome.windows.get(workspace.originalWindowId).catch(() => null);
+  let moved = false;
+  if (originalWindow) {
+    const movedTab = await chrome.tabs.move(tabId, {
+      windowId: workspace.originalWindowId,
+      index: workspace.originalIndex
+    }).catch(() => null);
+    moved = Boolean(movedTab);
+    if (moved) {
+      await chrome.tabs.update(tabId, {
+        active: true,
+        pinned: workspace.originalPinned
+      }).catch(() => {});
+      await chrome.windows.update(workspace.originalWindowId, { focused: true }).catch(() => {});
+    }
+  }
+  if (workspace.placeholderTabId) await chrome.tabs.remove(workspace.placeholderTabId).catch(() => {});
+  if (moved && workspace.captureWindowId) await chrome.windows.remove(workspace.captureWindowId).catch(() => {});
 }
 
 async function runCapture(tabId, options) {
@@ -298,12 +375,15 @@ async function runCapture(tabId, options) {
   const groups = [];
   const total = options.pages.length * options.profiles.length;
   let completed = 0;
+  let workspace;
+  let sessionId;
 
-  jobs.set(tabId, { running: true, cancelled: false, completed: 0, total, message: "Preparing capture…" });
+  jobs.set(tabId, { tabId, running: true, cancelled: false, completed: 0, total, message: "Preparing capture…" });
   updateBadge(tabId, "0%", "#2563eb");
 
   try {
     await pause(500);
+    workspace = await createCaptureWorkspace(tabId, originalTab, options.dedicatedWindow);
     await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION);
     await sendCommand(tabId, "Page.enable");
 
@@ -314,26 +394,26 @@ async function runCapture(tabId, options) {
         await applyProfile(tabId, profile, originalZoom);
         await loadPage(tabId, page.url);
         await pause(750);
-        groups.push(await capturePage(tabId, originalTab.windowId, profile, page));
+        groups.push(await capturePage(tabId, workspace.windowId, profile, page));
         completed += 1;
         updateBadge(tabId, `${Math.round((completed / total) * 100)}%`, "#2563eb");
         publishStatus(tabId, { completed, message: `Captured ${completed} of ${total}` });
       }
     }
 
-    publishStatus(tabId, { message: "Stitching pages and building PDF…" });
-    const objectUrl = await buildPdfUrl(groups);
-    await chrome.downloads.download({
-      url: objectUrl,
-      filename: safeFilename(new URL(originalUrl).hostname),
-      saveAs: true
+    publishStatus(tabId, { message: "Stitching pages and preparing results…" });
+    sessionId = await processCaptures(groups, {
+      hostname: new URL(originalUrl).hostname,
+      title: originalTab.title || new URL(originalUrl).hostname,
+      outputFormat: options.outputFormat || "both",
+      outputLayout: options.outputLayout || "combined"
     });
 
     updateBadge(tabId, "✓", "#16a34a");
     publishStatus(tabId, {
       running: false,
       completed: total,
-      message: `Done — ${total} page view${total === 1 ? "" : "s"} saved.`
+      message: `Done — ${total} page view${total === 1 ? "" : "s"} ready.`
     });
   } catch (error) {
     const cancelled = jobs.get(tabId)?.cancelled;
@@ -356,15 +436,25 @@ async function runCapture(tabId, options) {
         args: [originalScroll]
       }).catch(() => {});
     }
+    await restoreCaptureWorkspace(tabId, workspace);
     setTimeout(() => updateBadge(tabId, ""), 8_000);
+  }
+
+  if (sessionId) {
+    const resultUrl = chrome.runtime.getURL(`src/results.html?session=${encodeURIComponent(sessionId)}`);
+    await chrome.tabs.create({
+      windowId: workspace?.originalWindowId || originalTab.windowId,
+      url: resultUrl,
+      active: true
+    }).catch(() => chrome.tabs.create({ url: resultUrl, active: true }));
   }
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "START_CAPTURE") {
     const { tabId, options } = message;
-    if (jobs.get(tabId)?.running) {
-      sendResponse({ ok: false, error: "A capture is already running in this tab." });
+    if ([...jobs.values()].some((job) => job.running)) {
+      sendResponse({ ok: false, error: "A BrowserSnaps capture is already running." });
       return;
     }
     runCapture(tabId, options);
@@ -373,11 +463,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "CANCEL_CAPTURE") {
-    const job = jobs.get(message.tabId);
+    const job = jobs.get(message.tabId) || [...jobs.values()].find((item) => item.running);
     if (job) job.cancelled = true;
     sendResponse({ ok: true });
     return;
   }
 
-  if (message.type === "GET_STATUS") sendResponse(jobs.get(message.tabId) || { running: false });
+  if (message.type === "GET_STATUS") {
+    sendResponse(jobs.get(message.tabId) || [...jobs.values()].find((item) => item.running) || { running: false });
+  }
 });
