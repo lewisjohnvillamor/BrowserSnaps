@@ -15,5 +15,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm run check
-      - run: npm test
+      - run: npm run validate:all
+      - run: npx --yes web-ext@10.6.0 lint --source-dir dist/firefox-extension --output text
+      - uses: actions/upload-artifact@v4
+        with:
+          name: browser-packages
+          path: |
+            dist/*-chromium.zip
+            dist/*-firefox.zip
+            dist/*-safari-source.zip
+            dist/*-chrome-web-store.zip
+          if-no-files-found: error

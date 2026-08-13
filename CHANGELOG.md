@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.4.2 - 2026-08-13
+
+- Added a Firefox 140+ Manifest V3 build with an AMO add-on ID and built-in no-data-collection declaration.
+- Added Firefox viewport resizing and visible-tab capture fallbacks for unsupported Chrome APIs.
+- Added a reproducible Firefox ZIP builder and temporary-installation instructions.
+- Added shared Chromium packages for Chrome, Edge, Brave, and Opera.
+- Added an experimental Safari source target and Xcode conversion instructions.
+- Added platform startup tests, a browser-by-browser functional checklist, and an explicit Internet Explorer unsupported notice.
+- Added an in-product disclosure explaining how page URLs, visible page content, and captures are handled.
+- Added a standalone Chrome Web Store privacy policy and submission checklist.
+- Added reproducible Chrome Web Store package generation and validation.
+- Added Chrome Web Store listing assets and reviewer-facing permission justifications.
+- Added the project homepage to the extension manifest.
+
 ## 1.4.1 - 2026-08-12
 
 - Removed the capture-results database from the service worker startup path to prevent extension initialization failures.

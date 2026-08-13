@@ -100,17 +100,22 @@ function renderList() {
   state.session.captures.forEach((capture, index) => {
     const row = document.createElement("div");
     row.className = `capture-item${index === state.activeIndex ? " active" : ""}`;
-    row.innerHTML = `
-      <input type="checkbox" ${state.selected.has(capture.id) ? "checked" : ""} aria-label="Include in export">
-      <span><strong></strong><span></span></span>
-    `;
-    row.querySelector("strong").textContent = capture.pageLabel;
-    row.querySelector("span span").textContent = `${capture.profileLabel} · ${capture.viewport}`;
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = state.selected.has(capture.id);
+    input.setAttribute("aria-label", "Include in export");
+    const copy = document.createElement("span");
+    const title = document.createElement("strong");
+    const details = document.createElement("span");
+    title.textContent = capture.pageLabel;
+    details.textContent = `${capture.profileLabel} · ${capture.viewport}`;
+    copy.append(title, details);
+    row.append(input, copy);
     row.addEventListener("click", (event) => {
       if (event.target.matches("input")) return;
       showCapture(index);
     });
-    row.querySelector("input").addEventListener("change", (event) => {
+    input.addEventListener("change", (event) => {
       if (event.target.checked) state.selected.add(capture.id);
       else state.selected.delete(capture.id);
     });

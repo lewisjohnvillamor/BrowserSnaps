@@ -3,18 +3,34 @@
   "name": "BrowserSnaps",
   "description": "Capture selected navigation pages at multiple screen sizes as PDF or PNG.",
   "version": "1.4.2",
-  "minimum_chrome_version": "116",
   "author": "Lewis John Villamor",
   "homepage_url": "https://github.com/lewisjohnvillamor/BrowserSnaps",
   "permissions": [
     "activeTab",
-    "debugger",
     "downloads",
-    "offscreen",
     "scripting"
   ],
   "background": {
-    "service_worker": "src/background.js"
+    "scripts": [
+      "src/storage.js",
+      "src/offscreen.js",
+      "src/platform-firefox.js",
+      "src/background.js"
+    ]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "browsersnaps@lewisjohnvillamor.github.io",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
   },
   "action": {
     "default_title": "BrowserSnaps",

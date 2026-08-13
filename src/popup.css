@@ -114,6 +114,10 @@ button { cursor: pointer; }
 .progress-track span { display: block; width: 0; height: 100%; border-radius: inherit; background: #2563eb; transition: width 180ms ease; }
 .error { margin: 10px 0; padding: 10px; border-radius: 9px; color: #b91c1c; background: #fee2e2; font-size: 11px; }
 
+.data-disclosure { margin: 12px 0 9px; color: #64748b; font-size: 10px; line-height: 1.45; }
+.data-disclosure a { color: #2563eb; font-weight: 700; text-decoration: none; }
+.data-disclosure a:hover { text-decoration: underline; }
+
 .primary-button, .secondary-button { width: 100%; min-height: 42px; border-radius: 10px; font-size: 12px; font-weight: 800; }
 .primary-button { border: 0; color: #fff; background: #2563eb; box-shadow: 0 7px 16px rgba(37, 99, 235, 0.2); }
 .primary-button:hover { background: #1d4ed8; }

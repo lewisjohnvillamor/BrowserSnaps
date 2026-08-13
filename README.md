@@ -4,6 +4,24 @@ Capture the current website's navigation pages at one or more screen sizes, revi
 
 BrowserSnaps is a lightweight, dependency-free Manifest V3 extension. It uses your active tab and existing signed-in browser session, discovers same-site navigation links, scrolls through each selected page, captures every visible viewport, and stitches the tiles into a full-page image. A local results viewer then lets you download PDF, PNG, or both.
 
+## Browser support
+
+BrowserSnaps is distributed from GitHub as unpacked development builds while public browser-store submissions are paused.
+
+| Browser | Status | Build |
+| --- | --- | --- |
+| Google Chrome 116+ | Supported | Chromium |
+| Microsoft Edge 116+ | Compatible build; branded test pending | Chromium |
+| Brave 1.57+ | Compatible build; branded test pending | Chromium |
+| Opera 102+ | Compatible build; branded test pending | Chromium |
+| Firefox 140+ | Test build | Firefox |
+| Safari 27+ | Experimental; macOS testing required | Safari source |
+| Internet Explorer | Not supported | None |
+
+Chrome, Edge, Brave, and Opera share Chromium's Manifest V3 extension APIs and use the same package. Firefox uses a separate manifest and replaces unsupported Chrome APIs with visible-tab capture and capture-window resizing. Safari uses a separate source package because Apple controls temporary loading, conversion, signing, and distribution through Safari and Xcode.
+
+Internet Explorer cannot run BrowserSnaps because it does not implement the WebExtensions standard and Microsoft retired the browser. BrowserSnaps requires a modern browser.
+
 ![BrowserSnaps extension popup showing pages, screen sizes, output options, and capture-window mode](docs/screenshots/browser-snaps-popup.png)
 
 ## What it does
@@ -35,7 +53,7 @@ After capturing, BrowserSnaps opens a local results page where you can preview e
 
 The viewer uses the stitched full-page image—not separate viewport screenshots—so PDF pages and downloaded PNGs remain visually continuous.
 
-## Install from source
+### Chrome, Edge, Brave, or Opera
 
 1. Download this repository with **Code → Download ZIP**, then extract it. You can also clone it:
 
@@ -43,11 +61,55 @@ The viewer uses the stitched full-page image—not separate viewport screenshots
    git clone https://github.com/lewisjohnvillamor/BrowserSnaps.git
    ```
 
-2. Open `chrome://extensions` in Google Chrome.
+2. Open the browser's extension manager:
+
+   - Chrome: `chrome://extensions`
+   - Edge: `edge://extensions`
+   - Brave: `brave://extensions`
+   - Opera: `opera://extensions`
+
 3. Turn on **Developer mode** in the upper-right corner.
 4. Select **Load unpacked**.
-5. Choose the extracted `BrowserSnaps` folder — the folder containing `manifest.json`.
-6. Pin BrowserSnaps from Chrome's Extensions menu for easy access.
+5. Choose the extracted `BrowserSnaps` repository folder—the folder containing `manifest.json`. You can alternatively run `npm run build:store` and load the cleaner `dist/extension` folder.
+6. Pin BrowserSnaps from the browser's Extensions menu for easy access.
+
+### Try in Firefox
+
+BrowserSnaps includes a separate Firefox Manifest V3 package because Firefox does not implement Chrome's `debugger` extension API or `offscreen` API.
+
+```bash
+npm run validate:firefox
+```
+
+Then:
+
+1. Open `about:debugging#/runtime/this-firefox` in Firefox 140 or later.
+2. Select **Load Temporary Add-on**.
+3. Choose `dist/firefox-extension/manifest.json`.
+4. Open a normal website, select BrowserSnaps, and first test **Current tab**.
+5. For Desktop, Laptop, Tablet, or Mobile presets, Firefox automatically uses a dedicated capture window and resizes its visible viewport.
+
+Temporary add-ons are removed when Firefox closes. The generated `dist/BrowserSnaps-v1.4.2-firefox.zip` is ready for Mozilla's validator and signing workflow.
+
+Firefox responsive presets reproduce CSS viewport widths but do not emulate Chrome's mobile user agent, touch input, or device-specific browser behavior. The capture window must remain open and unminimized.
+
+### Try in Safari
+
+Safari 27 can temporarily load compatible Chrome or Firefox extension resources from its Develop tools. Build the Safari source first:
+
+```bash
+npm run validate:safari
+```
+
+Use `dist/safari-extension` as the extension resources directory. On older Safari versions or for a distributable app, run Apple's converter on macOS with Xcode:
+
+```bash
+xcrun safari-web-extension-converter dist/safari-extension --project-location dist/safari-project
+```
+
+Open the generated Xcode project, select your Apple development team, build the macOS app, enable the extension in Safari, and complete the [browser test checklist](docs/BROWSER_TESTING.md). Safari cannot be packaged, signed, or genuinely tested from Windows or Linux.
+
+Safari support remains experimental until the current package completes the checklist on a real Mac. The current-tab mode should be tested before responsive capture-window sizes.
 
 ## Use BrowserSnaps
 
@@ -104,6 +166,8 @@ The included demo site is used for documentation and development checks:
 
 BrowserSnaps has no analytics, remote code, accounts, or backend. Captures and page URLs stay inside your browser. Review [`manifest.json`](manifest.json) and the source in [`src/`](src/) to verify the behavior.
 
+Read the complete [Privacy Policy](PRIVACY.md), including local storage, retention, and Chrome Web Store Limited Use disclosures.
+
 ## Limitations
 
 - Chrome internal pages such as `chrome://settings` cannot be captured.
@@ -121,9 +185,38 @@ There is no bundler and nothing to compile. Edit the files, then select the **Re
 ```bash
 npm run check
 npm test
+npm run build:store
+npm run build:firefox
+npm run build:safari
 ```
 
 The small test suite validates the built-in PDF and ZIP writers. The demo page used in the documentation is at [`docs/demo-site/index.html`](docs/demo-site/index.html).
+
+Chrome Web Store listing copy, permission justifications, privacy-field answers, assets, and the manual submission checklist are maintained in [`store/STORE_SUBMISSION.md`](store/STORE_SUBMISSION.md).
+
+Cross-browser package checks and manual functional cases are documented in [Browser testing](docs/BROWSER_TESTING.md).
+
+## Chrome Web Store release materials
+
+Everything needed for the first Store submission is maintained in the repository:
+
+| Material | File |
+| --- | --- |
+| Copy-ready Store listing and dashboard answers | [Listing copy](store/LISTING_COPY.md) |
+| Upload, privacy, testing, and release steps | [Submission checklist](store/SUBMISSION_CHECKLIST.md) |
+| Public user-data and retention disclosure | [Privacy policy](PRIVACY.md) |
+| Combined reviewer reference | [Store submission reference](store/STORE_SUBMISSION.md) |
+| Screenshots and promotional image | [`store/assets/`](store/assets/) |
+
+Build and validate the exact upload package with:
+
+```bash
+npm run validate:store
+```
+
+The generated `dist/BrowserSnaps-v1.4.2-chrome-web-store.zip` contains only the extension runtime, manifest, icons, and license. Development files, tests, Store copy, and screenshots are excluded from the uploaded extension.
+
+The Chrome Web Store and GitHub should be used together: the Store is the recommended installation and automatic-update channel, while GitHub remains the public source, issue tracker, privacy-policy host, and reproducible release source.
 
 ## Contributing
 

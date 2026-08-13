@@ -29,40 +29,52 @@ const elements = {
 let activeTab;
 let pages = [];
 
-function escapeText(value) {
-  const span = document.createElement("span");
-  span.textContent = value;
-  return span.innerHTML;
-}
-
 function showError(message) {
   elements.error.textContent = message;
   elements.error.hidden = false;
 }
 
 function renderProfiles() {
-  elements.profileList.innerHTML = PROFILES.map((profile) => `
-    <label class="profile">
-      <input type="checkbox" value="${profile.id}" ${profile.checked ? "checked" : ""}>
-      <span><strong>${profile.label}</strong><span>${profile.width ? `${profile.width} × ${profile.height}` : "Detecting…"}</span></span>
-    </label>
-  `).join("");
+  const rows = PROFILES.map((profile) => {
+    const label = document.createElement("label");
+    label.className = "profile";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = profile.id;
+    input.checked = profile.checked;
+    const copy = document.createElement("span");
+    const title = document.createElement("strong");
+    const dimensions = document.createElement("span");
+    title.textContent = profile.label;
+    dimensions.textContent = profile.width ? `${profile.width} × ${profile.height}` : "Detecting…";
+    copy.append(title, dimensions);
+    label.append(input, copy);
+    return label;
+  });
+  elements.profileList.replaceChildren(...rows);
 }
 
 function renderPages() {
   elements.pageList.classList.remove("loading-list");
-  elements.pageList.innerHTML = pages.map((page, index) => {
+  const rows = pages.map((page, index) => {
     const path = new URL(page.url).pathname || "/";
-    return `
-      <label class="check-item">
-        <input type="checkbox" value="${index}" ${index === 0 ? "checked" : ""}>
-        <span class="check-copy">
-          <strong>${escapeText(page.label)}</strong>
-          <span>${escapeText(path)}</span>
-        </span>
-      </label>
-    `;
-  }).join("");
+    const label = document.createElement("label");
+    label.className = "check-item";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = String(index);
+    input.checked = index === 0;
+    const copy = document.createElement("span");
+    copy.className = "check-copy";
+    const title = document.createElement("strong");
+    const location = document.createElement("span");
+    title.textContent = page.label;
+    location.textContent = path;
+    copy.append(title, location);
+    label.append(input, copy);
+    return label;
+  });
+  elements.pageList.replaceChildren(...rows);
 }
 
 async function discoverPages() {

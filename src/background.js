@@ -1,13 +1,11 @@
 /* global chrome */
 
-const DEBUGGER_VERSION = "1.3";
+if (!self.BrowserSnapsPlatform && typeof importScripts === "function") importScripts("platform-chrome.js");
+
+const Platform = self.BrowserSnapsPlatform;
 const TILE_OVERLAP = 80;
 const TILE_DELAY = 450;
 const jobs = new Map();
-
-function sendCommand(tabId, method, params = {}) {
-  return chrome.debugger.sendCommand({ tabId }, method, params);
-}
 
 function pause(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -58,15 +56,38 @@ async function loadPage(tabId, url) {
   await loaded;
 }
 
-async function applyProfile(tabId, profile, originalZoom) {
+async function resizeViewport(tabId, windowId, profile) {
+  await chrome.tabs.setZoom(tabId, 1);
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const [{ result: viewport }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({ width: window.innerWidth, height: window.innerHeight })
+    });
+    if (viewport.width === profile.width && viewport.height === profile.height) return;
+    const browserWindow = await chrome.windows.get(windowId);
+    await chrome.windows.update(windowId, {
+      state: "normal",
+      width: Math.max(320, browserWindow.width + profile.width - viewport.width),
+      height: Math.max(240, browserWindow.height + profile.height - viewport.height)
+    });
+    await pause(180);
+  }
+}
+
+async function applyProfile(tabId, windowId, profile, originalZoom) {
   if (profile.id === "current") {
-    await sendCommand(tabId, "Emulation.clearDeviceMetricsOverride").catch(() => {});
+    if (Platform.supportsDeviceMetrics) await Platform.clearDeviceMetrics(tabId).catch(() => {});
     await chrome.tabs.setZoom(tabId, originalZoom);
     return;
   }
 
+  if (!Platform.supportsDeviceMetrics) {
+    await resizeViewport(tabId, windowId, profile);
+    return;
+  }
+
   await chrome.tabs.setZoom(tabId, 1);
-  await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
+  await Platform.setDeviceMetrics(tabId, {
     width: profile.width,
     height: profile.height,
     deviceScaleFactor: 1,
@@ -208,7 +229,7 @@ async function restorePageStyles(tabId) {
 }
 
 async function captureVisibleTile(tabId, windowId, useVisibleTab) {
-  if (useVisibleTab) {
+  if (useVisibleTab || !Platform.supportsDeviceMetrics) {
     const [active] = await chrome.tabs.query({ active: true, windowId });
     if (active?.id !== tabId) {
       throw new Error("Keep the page tab active until BrowserSnaps finishes capturing it.");
@@ -216,13 +237,7 @@ async function captureVisibleTile(tabId, windowId, useVisibleTab) {
     const dataUrl = await chrome.tabs.captureVisibleTab(windowId, { format: "jpeg", quality: 90 });
     return dataUrl.slice(dataUrl.indexOf(",") + 1);
   }
-  const screenshot = await sendCommand(tabId, "Page.captureScreenshot", {
-    format: "jpeg",
-    quality: 90,
-    fromSurface: true,
-    captureBeyondViewport: false
-  });
-  return screenshot.data;
+  return Platform.captureTabTile(tabId);
 }
 
 async function capturePage(tabId, windowId, profile, page, dedicatedWindow) {
@@ -268,12 +283,7 @@ async function capturePage(tabId, windowId, profile, page, dedicatedWindow) {
 }
 
 async function ensureOffscreenDocument() {
-  if (await chrome.offscreen.hasDocument()) return;
-  await chrome.offscreen.createDocument({
-    url: "src/offscreen.html",
-    reasons: ["BLOBS"],
-    justification: "Stitch viewport tiles and store local capture results."
-  });
+  await Platform.ensureProcessor();
 }
 
 async function processCaptures(groups, session) {
@@ -372,15 +382,18 @@ async function runCapture(tabId, options) {
 
   try {
     await pause(500);
-    workspace = await createCaptureWorkspace(tabId, originalTab, options.dedicatedWindow);
-    await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION);
-    await sendCommand(tabId, "Page.enable");
+    const responsiveResizeRequired = !Platform.supportsDeviceMetrics && options.profiles.some((profile) => profile.id !== "current");
+    workspace = await createCaptureWorkspace(tabId, originalTab, options.dedicatedWindow || responsiveResizeRequired);
+    if (responsiveResizeRequired && !workspace.dedicated) {
+      throw new Error("Firefox needs a dedicated capture window for responsive screen sizes. Try Current tab only.");
+    }
+    await Platform.beginCapture(tabId);
 
     for (const page of options.pages) {
       for (const profile of options.profiles) {
         if (jobs.get(tabId)?.cancelled) throw new Error("Capture cancelled.");
         publishStatus(tabId, { message: `Loading ${page.label} · ${profile.label}…` });
-        await applyProfile(tabId, profile, originalZoom);
+        await applyProfile(tabId, workspace.windowId, profile, originalZoom);
         await loadPage(tabId, page.url);
         await pause(750);
         groups.push(await capturePage(tabId, workspace.windowId, profile, page, workspace.dedicated));
@@ -415,8 +428,7 @@ async function runCapture(tabId, options) {
     failureMessage = cancelled ? "Capture cancelled." : error.message;
   } finally {
     await restorePageStyles(tabId);
-    await sendCommand(tabId, "Emulation.clearDeviceMetricsOverride").catch(() => {});
-    await chrome.debugger.detach({ tabId }).catch(() => {});
+    await Platform.endCapture(tabId).catch(() => {});
     await chrome.tabs.setZoom(tabId, originalZoom).catch(() => {});
     if (options.restoreOriginal && originalUrl) {
       await loadPage(tabId, originalUrl).catch(() => {});
