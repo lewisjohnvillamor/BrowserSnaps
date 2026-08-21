@@ -14,6 +14,7 @@ function boot() {
     setTimeout,
     clearTimeout,
     chrome: {
+      debugger: { onEvent: { addListener: () => {} } },
       runtime: {
         onMessage: { addListener: () => {} },
         sendMessage: async () => {}
@@ -30,6 +31,7 @@ function boot() {
   vm.runInContext(fs.readFileSync(new URL("../src/platform-chrome.js", import.meta.url), "utf8"), context);
   vm.runInContext(fs.readFileSync(new URL("../src/indicator.js", import.meta.url), "utf8"), context);
   vm.runInContext(fs.readFileSync(new URL("../src/audit.js", import.meta.url), "utf8"), context);
+  vm.runInContext(fs.readFileSync(new URL("../src/perf.js", import.meta.url), "utf8"), context);
   vm.runInContext(background, context);
   return { context, injections };
 }

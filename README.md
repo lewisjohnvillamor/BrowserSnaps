@@ -38,6 +38,7 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 - Stitches the viewport tiles into one continuous full-page image
 - Paginates long captures onto clean portrait Letter sheets instead of oversized PDF pages
 - Audits any page for SEO, accessibility, and page-quality issues, with or without capturing
+- Measures Core Web Vitals and page weight on the same load, with no third-party service
 - Saves every image on the current page with one click, no capture required
 - Shows a small on-page capture indicator with live progress and a Cancel button
 - Ends with a "View results" button in that indicator instead of taking over a new tab
@@ -60,6 +61,16 @@ Findings are grouped into three severities:
 - **Notice** — canonical, heading-level skips, Open Graph and Twitter card completeness, missing structured data, positive `tabindex`, no `main` landmark, thin content, missing `robots.txt` or `sitemap.xml`
 
 Capturing several pages at once adds cross-page checks that a single-page audit cannot do — most usefully, pages sharing a title or meta description.
+
+### Performance
+
+Each audited page is also measured. BrowserSnaps reports LCP, FCP, TTFB, CLS, and DOM Content Loaded against Google's published thresholds, plus a resource weight table, long tasks, render-blocking resources in `<head>`, and third-party origin count.
+
+On Chromium the numbers come from the DevTools protocol that captures already attach, so transfer sizes and response headers are real — which is what makes "these text responses were sent uncompressed" possible. Firefox and Safari fall back to the Performance API, where cross-origin responses without `Timing-Allow-Origin` report zero bytes; when that happens the report says so rather than presenting a total it cannot stand behind.
+
+During a capture, measurement runs on a fresh navigation. A standalone audit measures the load already sitting in the tab, which may be cache-warmed — the report labels which one you are looking at.
+
+There is still no score out of 100, deliberately. These are real measurements from your machine and network, not Lighthouse's simulated-throttling lab run, and dressing them up as a comparable score would misrepresent them.
 
 Everything is measured locally in your browser. `robots.txt` and `sitemap.xml` are read from the audited site's own origin; nothing is sent anywhere else, and no scores are fetched from a third-party service.
 

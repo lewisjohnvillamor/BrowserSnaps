@@ -2,7 +2,7 @@
 
 ## Before uploading
 
-- [ ] Push BrowserSnaps v1.6.0 and confirm the public repository opens without signing in.
+- [ ] Push BrowserSnaps v1.7.0 and confirm the public repository opens without signing in.
 - [ ] Open the [public privacy policy](https://github.com/lewisjohnvillamor/BrowserSnaps/blob/main/PRIVACY.md) in a signed-out browser window.
 - [ ] Register the Chrome Web Store publisher account.
 - [ ] Pay the one-time publisher registration fee shown by Google.
@@ -10,14 +10,14 @@
 - [ ] Verify the publisher email address and monitor it for review messages.
 - [ ] Run `npm run validate:store` from the repository root.
 - [ ] Confirm every automated test passes.
-- [ ] Confirm `dist/BrowserSnaps-v1.6.0-chrome-web-store.zip` is generated.
+- [ ] Confirm `dist/BrowserSnaps-v1.7.0-chrome-web-store.zip` is generated.
 - [ ] Load the contents of `dist/extension/` as an unpacked extension and complete one final capture test.
 
 ## Package tab
 
 - [ ] Create a new Chrome Web Store item.
-- [ ] Upload `dist/BrowserSnaps-v1.6.0-chrome-web-store.zip`.
-- [ ] Confirm the dashboard reads version 1.6.0.
+- [ ] Upload `dist/BrowserSnaps-v1.7.0-chrome-web-store.zip`.
+- [ ] Confirm the dashboard reads version 1.7.0.
 - [ ] Confirm the manifest is accepted without warnings.
 
 ## Store listing tab

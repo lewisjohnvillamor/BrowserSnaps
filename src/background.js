@@ -3,10 +3,12 @@
 if (!self.BrowserSnapsPlatform && typeof importScripts === "function") importScripts("platform-chrome.js");
 if (!self.BrowserSnapsIndicator && typeof importScripts === "function") importScripts("indicator.js");
 if (!self.BrowserSnapsAudit && typeof importScripts === "function") importScripts("audit.js");
+if (!self.BrowserSnapsPerf && typeof importScripts === "function") importScripts("perf.js");
 
 const Platform = self.BrowserSnapsPlatform;
 const Indicator = self.BrowserSnapsIndicator;
 const Audit = self.BrowserSnapsAudit;
+const Perf = self.BrowserSnapsPerf;
 const TILE_OVERLAP = 80;
 const TILE_DELAY = 450;
 const MAX_IMAGES = 200;
@@ -422,6 +424,12 @@ async function runImageGrab(tabId) {
   }
 }
 
+async function measurePerformance(tabId, freshLoad) {
+  const network = await Platform.takeNetworkTrace(tabId).catch(() => null);
+  const report = await Perf.measure(tabId, network);
+  return { ...report, freshLoad };
+}
+
 async function runAudit(tabId) {
   jobs.set(tabId, { tabId, running: true, cancelled: false, completed: 0, total: 1, message: "Auditing this page…" });
   updateBadge(tabId, "…", "#2563eb");
@@ -430,13 +438,16 @@ async function runAudit(tabId) {
   try {
     const tab = await chrome.tabs.get(tabId);
     const report = await Audit.audit(tabId, tab.title || new URL(tab.url).hostname);
+    // No fresh navigation here, so this reflects the load already sitting in the tab.
+    report.performance = await measurePerformance(tabId, false).catch(() => null);
     const sessionId = await processAudit([report], {
       hostname: report.facts.hostname,
       title: tab.title || report.facts.hostname
     });
 
-    const summary = describeFindings(report.counts);
-    updateBadge(tabId, report.counts.critical ? String(report.counts.critical) : "✓", report.counts.critical ? "#dc2626" : "#16a34a");
+    const summary = describeFindings(combinedCounts(report));
+    const critical = combinedCounts(report).critical;
+    updateBadge(tabId, critical ? String(critical) : "✓", critical ? "#dc2626" : "#16a34a");
     publishStatus(tabId, { running: false, completed: 1, sessionId, message: `Done — ${summary}` });
     await Indicator.show(tabId, { phase: "done", message: summary, completed: 1, total: 1, sessionId });
   } catch (error) {
@@ -446,6 +457,12 @@ async function runAudit(tabId) {
   } finally {
     setTimeout(() => updateBadge(tabId, ""), 8_000);
   }
+}
+
+function combinedCounts(report) {
+  const counts = { ...report.counts };
+  for (const severity of Object.keys(counts)) counts[severity] += report.performance?.counts?.[severity] || 0;
+  return counts;
 }
 
 function describeFindings(counts) {
@@ -579,13 +596,17 @@ async function runCapture(tabId, options) {
         if (jobs.get(tabId)?.cancelled) throw new Error("Capture cancelled.");
         publishStatus(tabId, { message: `Loading ${page.label} · ${profile.label}…` });
         await applyProfile(tabId, workspace.windowId, profile, originalZoom);
+        await Platform.resetNetworkTrace(tabId).catch(() => {});
         await loadPage(tabId, page.url);
         await pause(750);
         if (!audited.has(page.url)) {
           audited.add(page.url);
           publishStatus(tabId, { message: `Auditing ${page.label}…` });
           const report = await Audit.audit(tabId, page.label).catch(() => null);
-          if (report) reports.push(report);
+          if (report) {
+            report.performance = await measurePerformance(tabId, true).catch(() => null);
+            reports.push(report);
+          }
         }
         groups.push(await capturePage(tabId, workspace.windowId, profile, page, workspace.dedicated));
         completed += 1;

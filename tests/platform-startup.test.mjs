@@ -14,6 +14,7 @@ function boot(platformFile) {
     setTimeout,
     clearTimeout,
     chrome: {
+      debugger: { onEvent: { addListener: () => {} } },
       runtime: {
         onMessage: { addListener: (listener) => listeners.push(listener) },
         sendMessage: async () => {}
@@ -24,6 +25,7 @@ function boot(platformFile) {
   vm.runInContext(fs.readFileSync(new URL(`../src/${platformFile}`, import.meta.url), "utf8"), context);
   vm.runInContext(fs.readFileSync(new URL("../src/indicator.js", import.meta.url), "utf8"), context);
   vm.runInContext(fs.readFileSync(new URL("../src/audit.js", import.meta.url), "utf8"), context);
+  vm.runInContext(fs.readFileSync(new URL("../src/perf.js", import.meta.url), "utf8"), context);
   vm.runInContext(background, context);
   return { context, listeners };
 }
@@ -31,6 +33,7 @@ function boot(platformFile) {
 test("Chromium service worker starts with the DevTools platform adapter", () => {
   const { context, listeners } = boot("platform-chrome.js");
   assert.equal(context.self.BrowserSnapsPlatform.supportsDeviceMetrics, true);
+  assert.equal(context.self.BrowserSnapsPlatform.supportsNetworkTrace, true);
   assert.equal(typeof context.self.BrowserSnapsIndicator.show, "function");
   assert.equal(listeners.length, 1);
 });
@@ -38,11 +41,13 @@ test("Chromium service worker starts with the DevTools platform adapter", () => 
 test("Firefox background page starts with the visible-tab platform adapter", () => {
   const { context, listeners } = boot("platform-firefox.js");
   assert.equal(context.self.BrowserSnapsPlatform.supportsDeviceMetrics, false);
+  assert.equal(context.self.BrowserSnapsPlatform.supportsNetworkTrace, false);
   assert.equal(listeners.length, 1);
 });
 
 test("Safari background page starts with the visible-tab platform adapter", () => {
   const { context, listeners } = boot("platform-safari.js");
   assert.equal(context.self.BrowserSnapsPlatform.supportsDeviceMetrics, false);
+  assert.equal(context.self.BrowserSnapsPlatform.supportsNetworkTrace, false);
   assert.equal(listeners.length, 1);
 });
