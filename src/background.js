@@ -1,14 +1,40 @@
 /* global chrome */
 
 if (!self.BrowserSnapsPlatform && typeof importScripts === "function") importScripts("platform-chrome.js");
+if (!self.BrowserSnapsIndicator && typeof importScripts === "function") importScripts("indicator.js");
 
 const Platform = self.BrowserSnapsPlatform;
+const Indicator = self.BrowserSnapsIndicator;
 const TILE_OVERLAP = 80;
 const TILE_DELAY = 450;
+const MAX_IMAGES = 200;
+const IMAGE_EXTENSION = /\.(jpe?g|png|gif|webp|avif|svg|bmp|ico|tiff?)$/i;
 const jobs = new Map();
 
 function pause(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function sanitizeName(value, fallback = "") {
+  const cleaned = String(value || "")
+    .normalize("NFKD")
+    .replace(/[^a-z0-9._-]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70);
+  return cleaned || fallback;
+}
+
+function imageFileName(url, index, digits) {
+  let name = "image";
+  try {
+    name = decodeURIComponent(new URL(url).pathname.split("/").filter(Boolean).pop() || "image");
+  } catch (_) {
+    // Percent-encoded paths that cannot be decoded keep the fallback name.
+  }
+  const match = IMAGE_EXTENSION.exec(name);
+  const extension = match ? match[0].toLowerCase() : ".jpg";
+  const stem = sanitizeName(match ? name.slice(0, -match[0].length) : name, "image");
+  return `${String(index + 1).padStart(digits, "0")}-${stem}${extension}`;
 }
 
 function updateBadge(tabId, value, color = "#2563eb") {
@@ -197,6 +223,7 @@ async function settleAt(tabId, requestedY) {
           image.addEventListener("error", resolve, { once: true });
         }));
       await Promise.race([Promise.all(pending), delay(2_500)]);
+      document.getElementById("browsersnaps-indicator")?.style.setProperty("visibility", "hidden", "important");
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       return {
         y: window.scrollY,
@@ -251,8 +278,14 @@ async function capturePage(tabId, windowId, profile, page, dedicatedWindow) {
   while (true) {
     if (jobs.get(tabId)?.cancelled) throw new Error("Capture cancelled.");
     const estimatedTiles = Math.max(index + 1, Math.ceil((documentHeight - metrics.height) / step) + 1);
-    publishStatus(tabId, {
-      message: `Capturing ${page.label} · ${profile.label} · tile ${index + 1}/${estimatedTiles}`
+    const message = `Capturing ${page.label} · ${profile.label} · tile ${index + 1}/${estimatedTiles}`;
+    publishStatus(tabId, { message });
+    const job = jobs.get(tabId);
+    await Indicator.show(tabId, {
+      phase: "running",
+      message,
+      completed: job?.completed || 0,
+      total: job?.total || 0
     });
     const settled = await settleAt(tabId, requestedY);
     documentHeight = Math.max(documentHeight, settled.documentHeight);
@@ -280,6 +313,111 @@ async function capturePage(tabId, windowId, profile, page, dedicatedWindow) {
     documentHeight,
     tiles
   };
+}
+
+async function collectImages(tabId) {
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => {
+      const seen = new Set();
+      const images = [];
+      let skipped = 0;
+
+      const add = (value) => {
+        if (!value) return;
+        let url;
+        try {
+          url = new URL(value, document.baseURI);
+        } catch (_) {
+          return;
+        }
+        // Inline data: and blob: sources cannot be handed to the browser's downloader.
+        if (!/^https?:$/.test(url.protocol)) {
+          skipped += 1;
+          return;
+        }
+        url.hash = "";
+        if (seen.has(url.href)) return;
+        seen.add(url.href);
+        images.push(url.href);
+      };
+
+      for (const image of document.images) {
+        if (image.naturalWidth === 1 && image.naturalHeight === 1) {
+          skipped += 1;
+          continue;
+        }
+        add(image.currentSrc || image.src || image.dataset.src);
+      }
+      for (const video of document.querySelectorAll("video[poster]")) add(video.poster);
+      for (const element of document.querySelectorAll("body *")) {
+        const layers = getComputedStyle(element).backgroundImage;
+        if (!layers || layers === "none") continue;
+        for (const match of layers.matchAll(/url\((['"]?)(.*?)\1\)/g)) add(match[2]);
+      }
+
+      return { images, skipped, hostname: location.hostname };
+    }
+  });
+  return result;
+}
+
+async function runImageGrab(tabId) {
+  jobs.set(tabId, { tabId, running: true, cancelled: false, completed: 0, total: 0, message: "Finding images…" });
+  updateBadge(tabId, "0%", "#2563eb");
+  await Indicator.show(tabId, { phase: "running", message: "Finding images on this page…", completed: 0, total: 0 });
+
+  let saved = 0;
+  let failed = 0;
+
+  try {
+    const page = await collectImages(tabId);
+    const dropped = Math.max(0, page.images.length - MAX_IMAGES);
+    const images = page.images.slice(0, MAX_IMAGES);
+    if (!images.length) throw new Error("No downloadable images were found on this page.");
+
+    const total = images.length;
+    const digits = String(total).length;
+    const folder = `${sanitizeName(`BrowserSnaps-${page.hostname}`, "BrowserSnaps")}-images`;
+    publishStatus(tabId, { total, message: `Saving ${total} image${total === 1 ? "" : "s"}…` });
+
+    for (let index = 0; index < total; index += 1) {
+      if (jobs.get(tabId)?.cancelled) throw new Error("Image download cancelled.");
+      const message = `Saving image ${index + 1} of ${total}…`;
+      publishStatus(tabId, { completed: index, message });
+      await Indicator.show(tabId, { phase: "running", message, completed: index, total });
+      try {
+        await chrome.downloads.download({
+          url: images[index],
+          filename: `${folder}/${imageFileName(images[index], index, digits)}`,
+          conflictAction: "uniquify",
+          saveAs: false
+        });
+        saved += 1;
+      } catch (_) {
+        failed += 1;
+      }
+      updateBadge(tabId, `${Math.round(((index + 1) / total) * 100)}%`, "#2563eb");
+    }
+
+    const notes = [`${saved} image${saved === 1 ? "" : "s"} saved to ${folder}`];
+    if (failed) notes.push(`${failed} could not be downloaded`);
+    if (page.skipped) notes.push(`${page.skipped} inline or tracking image${page.skipped === 1 ? "" : "s"} skipped`);
+    if (dropped) notes.push(`${dropped} past the ${MAX_IMAGES}-image limit skipped`);
+    const summary = `${notes.join(" · ")}.`;
+
+    updateBadge(tabId, "✓", "#16a34a");
+    publishStatus(tabId, { running: false, completed: total, message: `Done — ${summary}` });
+    await Indicator.show(tabId, { phase: "done", message: summary, completed: total, total });
+  } catch (error) {
+    const cancelled = jobs.get(tabId)?.cancelled;
+    const message = cancelled ? "Image download cancelled." : error.message;
+    updateBadge(tabId, "!", cancelled ? "#64748b" : "#dc2626");
+    publishStatus(tabId, { running: false, error: true, message });
+    await Indicator.show(tabId, { phase: cancelled ? "cancelled" : "error", message });
+  } finally {
+    setTimeout(() => updateBadge(tabId, ""), 8_000);
+  }
 }
 
 async function ensureOffscreenDocument() {
@@ -376,9 +514,11 @@ async function runCapture(tabId, options) {
   let workspace;
   let sessionId;
   let failureMessage;
+  let wasCancelled = false;
 
   jobs.set(tabId, { tabId, running: true, cancelled: false, completed: 0, total, message: "Preparing capture…" });
   updateBadge(tabId, "0%", "#2563eb");
+  await Indicator.show(tabId, { phase: "running", message: "Starting capture…", completed: 0, total });
 
   try {
     await pause(500);
@@ -415,10 +555,12 @@ async function runCapture(tabId, options) {
     publishStatus(tabId, {
       running: false,
       completed: total,
+      sessionId,
       message: `Done — ${total} page view${total === 1 ? "" : "s"} ready.`
     });
   } catch (error) {
     const cancelled = jobs.get(tabId)?.cancelled;
+    wasCancelled = Boolean(cancelled);
     updateBadge(tabId, "!", cancelled ? "#64748b" : "#dc2626");
     publishStatus(tabId, {
       running: false,
@@ -442,21 +584,31 @@ async function runCapture(tabId, options) {
     setTimeout(() => updateBadge(tabId, ""), 8_000);
   }
 
-  if (sessionId) {
-    const resultUrl = chrome.runtime.getURL(`src/results.html?session=${encodeURIComponent(sessionId)}`);
-    await chrome.tabs.create({
-      windowId: workspace?.originalWindowId || originalTab.windowId,
-      url: resultUrl,
-      active: true
-    }).catch(() => chrome.tabs.create({ url: resultUrl, active: true }));
-  } else if (failureMessage) {
-    const errorUrl = chrome.runtime.getURL(`src/results.html?error=${encodeURIComponent(failureMessage)}`);
-    await chrome.tabs.create({
-      windowId: workspace?.originalWindowId || originalTab.windowId,
-      url: errorUrl,
-      active: true
-    }).catch(() => chrome.tabs.create({ url: errorUrl, active: true }));
-  }
+  if (!sessionId && !failureMessage) return;
+
+  const announced = await Indicator.show(tabId, sessionId
+    ? {
+        phase: "done",
+        message: `${total} page view${total === 1 ? "" : "s"} ready.`,
+        completed: total,
+        total,
+        sessionId
+      }
+    : {
+        phase: wasCancelled ? "cancelled" : "error",
+        message: failureMessage
+      });
+  if (announced) return;
+
+  // The page cannot host the indicator, so fall back to the standalone results tab.
+  const fallbackUrl = chrome.runtime.getURL(sessionId
+    ? `src/results.html?session=${encodeURIComponent(sessionId)}`
+    : `src/results.html?error=${encodeURIComponent(failureMessage)}`);
+  await chrome.tabs.create({
+    windowId: workspace?.originalWindowId || originalTab.windowId,
+    url: fallbackUrl,
+    active: true
+  }).catch(() => chrome.tabs.create({ url: fallbackUrl, active: true }));
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -467,6 +619,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
     runCapture(tabId, options);
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === "START_IMAGE_GRAB") {
+    if ([...jobs.values()].some((job) => job.running)) {
+      sendResponse({ ok: false, error: "A BrowserSnaps job is already running." });
+      return;
+    }
+    runImageGrab(message.tabId);
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === "OPEN_RESULTS") {
+    const resultUrl = chrome.runtime.getURL(`src/results.html?session=${encodeURIComponent(message.sessionId)}`);
+    chrome.tabs.create({ url: resultUrl, active: true });
     sendResponse({ ok: true });
     return;
   }

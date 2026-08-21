@@ -22,6 +22,14 @@
         <span id="site-url" class="site-url"></span>
       </section>
 
+      <button id="grab-images" class="quick-action" type="button" disabled>
+        <span class="quick-copy">
+          <strong>Save page images</strong>
+          <small id="image-count">Counting images…</small>
+        </span>
+        <span class="quick-chevron" aria-hidden="true">&rsaquo;</span>
+      </button>
+
       <section class="section">
         <div class="section-heading">
           <div>
@@ -91,6 +99,7 @@
           <span id="status-count"></span>
         </div>
         <div class="progress-track"><span id="progress-bar"></span></div>
+        <button id="view-results" class="status-button" type="button" hidden>View results</button>
       </div>
 
       <p id="error" class="error" hidden></p>

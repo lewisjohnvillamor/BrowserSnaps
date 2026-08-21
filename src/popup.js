@@ -23,11 +23,15 @@ const elements = {
   statusText: document.querySelector("#status-text"),
   statusCount: document.querySelector("#status-count"),
   progressBar: document.querySelector("#progress-bar"),
+  viewResults: document.querySelector("#view-results"),
+  grabImages: document.querySelector("#grab-images"),
+  imageCount: document.querySelector("#image-count"),
   error: document.querySelector("#error")
 };
 
 let activeTab;
 let pages = [];
+let imagesAvailable = false;
 
 function showError(message) {
   elements.error.textContent = message;
@@ -111,8 +115,15 @@ async function discoverPages() {
           // Ignore malformed or non-web links.
         }
       }
+      const sources = new Set();
+      for (const image of document.images) {
+        const source = image.currentSrc || image.src || image.dataset.src || "";
+        if (/^https?:/.test(source)) sources.add(source.split("#")[0]);
+      }
+
       return {
         pages: found,
+        images: sources.size,
         viewport: { width: window.innerWidth, height: window.innerHeight }
       };
     }
@@ -124,6 +135,16 @@ async function discoverPages() {
   current.height = result.viewport.height;
   renderProfiles();
   renderPages();
+  renderImageAction(result.images);
+}
+
+function renderImageAction(count, available = true) {
+  // The count only covers <img> tags; posters and CSS backgrounds are found at download time.
+  imagesAvailable = available;
+  elements.grabImages.disabled = !available;
+  if (!available) elements.imageCount.textContent = "Unavailable on this page";
+  else if (count) elements.imageCount.textContent = `Download ${count}+ image${count === 1 ? "" : "s"} straight to your Downloads folder`;
+  else elements.imageCount.textContent = "Checks image tags, video posters, and CSS backgrounds";
 }
 
 function selectedPages() {
@@ -142,6 +163,8 @@ function setRunning(running) {
   document.querySelectorAll("input, #select-all, #select-none").forEach((control) => {
     control.disabled = running;
   });
+  elements.grabImages.disabled = running || !imagesAvailable;
+  if (running) elements.viewResults.hidden = true;
 }
 
 function applyStatus(status) {
@@ -153,6 +176,8 @@ function applyStatus(status) {
   const total = status.total || 0;
   elements.statusCount.textContent = total ? `${completed}/${total}` : "";
   elements.progressBar.style.width = total ? `${Math.round((completed / total) * 100)}%` : "4%";
+  elements.viewResults.hidden = Boolean(status.running) || !status.sessionId;
+  elements.viewResults.dataset.sessionId = status.sessionId || "";
   if (status.error) showError(status.message);
 }
 
@@ -194,6 +219,26 @@ elements.capture.addEventListener("click", async () => {
   window.close();
 });
 
+elements.grabImages.addEventListener("click", async () => {
+  elements.error.hidden = true;
+  setRunning(true);
+  applyStatus({ running: true, completed: 0, total: 0, message: "Finding images…" });
+  const response = await chrome.runtime.sendMessage({ type: "START_IMAGE_GRAB", tabId: activeTab.id });
+  if (!response?.ok) {
+    setRunning(false);
+    showError(response?.error || "BrowserSnaps could not save this page's images.");
+    return;
+  }
+  window.close();
+});
+
+elements.viewResults.addEventListener("click", async () => {
+  const sessionId = elements.viewResults.dataset.sessionId;
+  if (!sessionId) return;
+  await chrome.runtime.sendMessage({ type: "OPEN_RESULTS", sessionId });
+  window.close();
+});
+
 elements.cancel.addEventListener("click", async () => {
   await chrome.runtime.sendMessage({ type: "CANCEL_CAPTURE", tabId: activeTab.id });
   elements.statusText.textContent = "Cancelling after the current screenshot…";
@@ -213,6 +258,7 @@ chrome.runtime.onMessage.addListener((message) => {
     elements.pageList.classList.remove("loading-list");
     elements.pageList.textContent = "No pages available.";
     elements.capture.disabled = true;
+    renderImageAction(0, false);
     showError(error.message);
   }
 })();

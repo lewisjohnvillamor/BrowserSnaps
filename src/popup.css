@@ -112,6 +112,16 @@ button { cursor: pointer; }
 .status-row { display: flex; justify-content: space-between; gap: 8px; }
 .progress-track { height: 5px; margin-top: 8px; overflow: hidden; border-radius: 99px; background: #cbdcfb; }
 .progress-track span { display: block; width: 0; height: 100%; border-radius: inherit; background: #2563eb; transition: width 180ms ease; }
+.status-button { width: 100%; margin-top: 9px; min-height: 30px; border: 0; border-radius: 8px; color: #fff; background: #2563eb; font-size: 11px; font-weight: 800; }
+.status-button:hover { background: #1d4ed8; }
+.quick-action { display: flex; width: 100%; margin: 12px 0 4px; padding: 10px 11px; align-items: center; gap: 10px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; text-align: left; }
+.quick-action:hover:enabled { border-color: #2563eb; background: #f5f9ff; }
+.quick-action:disabled { cursor: not-allowed; opacity: 0.6; }
+.quick-copy { flex: 1 1 auto; min-width: 0; }
+.quick-copy strong { display: block; color: #0f172a; font-size: 12px; font-weight: 800; }
+.quick-copy small { display: block; margin-top: 1px; color: #64748b; font-size: 10px; }
+.quick-chevron { flex: 0 0 auto; color: #94a3b8; font-size: 17px; line-height: 1; }
+
 .error { margin: 10px 0; padding: 10px; border-radius: 9px; color: #b91c1c; background: #fee2e2; font-size: 11px; }
 
 .data-disclosure { margin: 12px 0 9px; color: #64748b; font-size: 10px; line-height: 1.45; }
