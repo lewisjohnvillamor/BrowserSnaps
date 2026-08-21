@@ -37,6 +37,7 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 - Neutralizes animation and repeating fixed or sticky elements during capture
 - Stitches the viewport tiles into one continuous full-page image
 - Paginates long captures onto clean portrait Letter sheets instead of oversized PDF pages
+- Saves every image on the current page with one click, no capture required
 - Shows a small on-page capture indicator with live progress and a Cancel button
 - Ends with a "View results" button in that indicator instead of taking over a new tab
 - Opens a local full-page viewer with zoom and capture selection
@@ -46,6 +47,18 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 - Restores the original page, browser zoom, and scroll position when finished
 - Sends no website data to a server
 - Requires no build step and has no production dependencies
+
+## Save page images
+
+The popup's **Save page images** quick action skips capturing entirely and downloads what the page is already showing: every `<img>` (including the `srcset` candidate actually rendered), every `<video>` poster, and every CSS `background-image`. Duplicates and 1×1 tracking pixels are dropped, and files land in a `BrowserSnaps-<hostname>-images` folder inside your Downloads directory, numbered in page order.
+
+BrowserSnaps hands each URL to the browser's own downloader, so cross-origin images work without CORS headers and without BrowserSnaps requesting access to every website. The trade-offs of that choice:
+
+- `data:` and `blob:` images are inline bytes rather than URLs, so they are skipped and counted in the summary.
+- URLs with no file extension (common on image CDNs) are saved as `.jpg`.
+- A run stops at 200 images; anything past that is reported as skipped rather than dropped silently.
+
+Progress, a Cancel button, and the final tally appear in the same on-page indicator the capture flow uses.
 
 ## Results viewer
 

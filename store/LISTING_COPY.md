@@ -32,6 +32,7 @@ Key features:
 - Use the current browser size or desktop, laptop, tablet, and mobile presets
 - Trigger lazy-loaded and scroll-animated page sections
 - Stitch visible viewport tiles into continuous full-page captures
+- Save every image on the current page with one click, without capturing
 - Track progress in a small on-page indicator instead of a tab that opens itself
 - Preview and select results before downloading
 - Export one combined PDF, individual PNGs, or ZIP packages
@@ -70,7 +71,7 @@ Grants temporary access only to the tab where the user opens BrowserSnaps, so th
 
 **scripting**
 
-Runs local scripts in the user-invoked tab to discover navigation links, scroll the page, wait for fonts and images, stabilize animated or sticky elements, and restore the page afterward.
+Runs local scripts in the user-invoked tab to discover navigation links and image sources, scroll the page, wait for fonts and images, stabilize animated or sticky elements, show the capture indicator, and restore the page afterward.
 
 **debugger**
 
@@ -78,7 +79,7 @@ Uses Chrome DevTools Protocol only during a user-started capture to apply select
 
 **downloads**
 
-Saves PDF, PNG, and ZIP files only when the user selects an export action.
+Saves PDF, PNG, and ZIP files only when the user selects an export action, and saves the current page's images when the user selects the Save page images action.
 
 **offscreen**
 

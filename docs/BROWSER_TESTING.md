@@ -50,6 +50,10 @@ Run every case on a normal HTTP or HTTPS test site with at least two same-origin
 - [ ] Mobile responsive capture completes.
 - [ ] Original URL, zoom, and scroll position are restored.
 - [ ] Dedicated capture window returns the tab to its original window.
+- [ ] Save page images reports a plausible image count in the popup.
+- [ ] Save page images downloads the page's images into a single Downloads subfolder.
+- [ ] Save page images reports skipped inline images and tracking pixels in the summary.
+- [ ] Save page images can be cancelled from the indicator.
 - [ ] Capture indicator appears in the corner of the page when the capture starts.
 - [ ] Indicator reports the current page, screen size, and tile while capturing.
 - [ ] Indicator does not appear in any stitched capture.

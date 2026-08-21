@@ -9,6 +9,9 @@
 - Reported capture failures and cancellations in the indicator instead of a separate error tab.
 - Added a View results button to the extension popup after a capture finishes.
 - Kept the standalone results tab as a fallback for pages that cannot host the indicator.
+- Added a Save page images quick action that downloads every image on the current page.
+- Collected rendered images, video posters, and CSS background images, skipping tracking pixels and duplicates.
+- Reported image download progress in the same indicator, with Cancel support.
 
 ## 1.4.2 - 2026-08-13
 
