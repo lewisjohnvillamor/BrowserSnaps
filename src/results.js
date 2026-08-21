@@ -1,4 +1,4 @@
-/* global BrowserSnapsPdf, BrowserSnapsPerf, BrowserSnapsStore, BrowserSnapsZip, OffscreenCanvas, chrome, createImageBitmap */
+/* global BrowserSnapsPdf, BrowserSnapsPerf, BrowserSnapsStore, BrowserSnapsTech, BrowserSnapsZip, OffscreenCanvas, chrome, createImageBitmap */
 
 const elements = {
   auditList: document.querySelector("#audit-list"),
@@ -226,6 +226,49 @@ function metricsBlock(performance) {
   return block;
 }
 
+function technologyBlock(technology) {
+  const block = document.createElement("div");
+  block.className = "tech";
+
+  const heading = document.createElement("div");
+  heading.className = "metrics-heading";
+  heading.append(Object.assign(document.createElement("strong"), { textContent: "Technology" }));
+  if (!technology.globalsAvailable) {
+    heading.append(Object.assign(document.createElement("span"), {
+      textContent: "this page blocked script-variable detection, so only markup, resources, and headers were read"
+    }));
+  }
+  block.append(heading);
+
+  if (!technology.detected.length) {
+    block.append(Object.assign(document.createElement("p"), {
+      className: "metrics-note",
+      textContent: "Nothing matched the signature list. That means no match, not that the page is plain HTML."
+    }));
+    return block;
+  }
+
+  for (const group of BrowserSnapsTech.groupByCategory(technology.detected)) {
+    const row = document.createElement("div");
+    row.className = "tech-row";
+    row.append(Object.assign(document.createElement("span"), { className: "tech-category", textContent: group.category }));
+    const chips = document.createElement("div");
+    chips.className = "tech-chips";
+    for (const item of group.items) {
+      const chip = document.createElement("span");
+      chip.className = "tech-chip";
+      chip.dataset.confidence = item.confidence;
+      chip.textContent = item.version ? `${item.name} ${item.version}` : item.name;
+      chip.title = `${item.confidence} confidence — ${item.evidence.join("; ")}`;
+      chips.append(chip);
+    }
+    row.append(chips);
+    block.append(row);
+  }
+
+  return block;
+}
+
 function auditSection(report) {
   const section = document.createElement("section");
   section.className = "audit-page";
@@ -243,6 +286,7 @@ function auditSection(report) {
   header.append(heading, tallies(reportCounts(report)));
   section.append(header);
 
+  if (report.technology) section.append(technologyBlock(report.technology));
   if (report.performance) section.append(metricsBlock(report.performance));
 
   const findings = [...report.findings, ...(report.performance?.findings || [])];

@@ -16,9 +16,9 @@ Generated targets:
 
 | Engine | Unpacked directory | Archive |
 | --- | --- | --- |
-| Chromium | `dist/extension` | `dist/BrowserSnaps-v1.7.0-chromium.zip` |
-| Firefox | `dist/firefox-extension` | `dist/BrowserSnaps-v1.7.0-firefox.zip` |
-| Safari | `dist/safari-extension` | `dist/BrowserSnaps-v1.7.0-safari-source.zip` |
+| Chromium | `dist/extension` | `dist/BrowserSnaps-v1.8.0-chromium.zip` |
+| Firefox | `dist/firefox-extension` | `dist/BrowserSnaps-v1.8.0-firefox.zip` |
+| Safari | `dist/safari-extension` | `dist/BrowserSnaps-v1.8.0-safari-source.zip` |
 
 ## Current verification status
 
@@ -52,6 +52,9 @@ Run every case on a normal HTTP or HTTPS test site with at least two same-origin
 - [ ] Dedicated capture window returns the tab to its original window.
 - [ ] Audit this page opens a report listing findings by severity.
 - [ ] The report shows Core Web Vitals with good, fair, or poor verdicts.
+- [ ] Technology detection names the correct framework or CMS on a known site.
+- [ ] Detection chips show their evidence on hover.
+- [ ] A site with a strict CSP still reports non-global technologies and says globals were blocked.
 - [ ] The resource weight table totals are non-zero on Chromium.
 - [ ] Firefox and Safari reports note when cross-origin sizes are hidden.
 - [ ] A capture labels its performance panel as a fresh load; a standalone audit does not.
@@ -107,7 +110,7 @@ On Safari 27+, use the Develop menu's temporary web-extension loading support an
 
 | Browser/version | OS | Date | Tester | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Chrome | — | — | — | Pending v1.7.0 retest | v1.4.1 current-tab capture was confirmed working |
+| Chrome | — | — | — | Pending v1.8.0 retest | v1.4.1 current-tab capture was confirmed working |
 | Edge | — | — | — | Pending | |
 | Brave | — | — | — | Pending | |
 | Opera | — | — | — | Pending | |

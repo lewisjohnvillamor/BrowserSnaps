@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "BrowserSnaps",
   "description": "Capture selected navigation pages at multiple screen sizes as PDF or PNG.",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "author": "Lewis John Villamor",
   "homepage_url": "https://github.com/lewisjohnvillamor/BrowserSnaps",
   "permissions": [
@@ -16,6 +16,7 @@
       "src/indicator.js",
       "src/audit.js",
       "src/perf.js",
+      "src/tech.js",
       "src/offscreen.js",
       "src/platform-firefox.js",
       "src/background.js"

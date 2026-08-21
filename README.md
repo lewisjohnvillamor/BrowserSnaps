@@ -39,6 +39,7 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 - Paginates long captures onto clean portrait Letter sheets instead of oversized PDF pages
 - Audits any page for SEO, accessibility, and page-quality issues, with or without capturing
 - Measures Core Web Vitals and page weight on the same load, with no third-party service
+- Identifies the frameworks, CMS, analytics, CDN, and server behind a page
 - Saves every image on the current page with one click, no capture required
 - Shows a small on-page capture indicator with live progress and a Cancel button
 - Ends with a "View results" button in that indicator instead of taking over a new tab
@@ -61,6 +62,16 @@ Findings are grouped into three severities:
 - **Notice** — canonical, heading-level skips, Open Graph and Twitter card completeness, missing structured data, positive `tabindex`, no `main` landmark, thin content, missing `robots.txt` or `sitemap.xml`
 
 Capturing several pages at once adds cross-page checks that a single-page audit cannot do — most usefully, pages sharing a title or meta description.
+
+### Technology
+
+Each audited page is fingerprinted against a curated signature list covering frameworks, CMSes and site builders, commerce platforms, analytics and tag managers, support and consent tools, UI libraries, CDNs, hosting, and servers. Versions are reported only where the page states them outright — `jQuery.fn.jquery`, `[ng-version]`, a `generator` meta tag, an `x-powered-by` header — never guessed.
+
+Four signal kinds are read: page globals, DOM markers, script and stylesheet URLs, and the main document's response headers (via a same-origin `HEAD` request, so no host permissions). A detection backed by two or more independent signals is marked **high** confidence; a single signal is **likely**. Hovering a chip shows the exact evidence.
+
+Page globals require main-world injection, which some sites' CSP blocks. When that happens the report says so and falls back to the other three signal kinds rather than silently under-reporting.
+
+This is a hand-maintained list of around 75 signatures, not a Wappalyzer-scale dataset. It is accurate on the platforms people usually ask about and blind beyond them — "nothing detected" means no match, not plain HTML.
 
 ### Performance
 

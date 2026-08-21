@@ -4,11 +4,13 @@ if (!self.BrowserSnapsPlatform && typeof importScripts === "function") importScr
 if (!self.BrowserSnapsIndicator && typeof importScripts === "function") importScripts("indicator.js");
 if (!self.BrowserSnapsAudit && typeof importScripts === "function") importScripts("audit.js");
 if (!self.BrowserSnapsPerf && typeof importScripts === "function") importScripts("perf.js");
+if (!self.BrowserSnapsTech && typeof importScripts === "function") importScripts("tech.js");
 
 const Platform = self.BrowserSnapsPlatform;
 const Indicator = self.BrowserSnapsIndicator;
 const Audit = self.BrowserSnapsAudit;
 const Perf = self.BrowserSnapsPerf;
+const Tech = self.BrowserSnapsTech;
 const TILE_OVERLAP = 80;
 const TILE_DELAY = 450;
 const MAX_IMAGES = 200;
@@ -440,6 +442,7 @@ async function runAudit(tabId) {
     const report = await Audit.audit(tabId, tab.title || new URL(tab.url).hostname);
     // No fresh navigation here, so this reflects the load already sitting in the tab.
     report.performance = await measurePerformance(tabId, false).catch(() => null);
+    report.technology = await Tech.detect(tabId).catch(() => null);
     const sessionId = await processAudit([report], {
       hostname: report.facts.hostname,
       title: tab.title || report.facts.hostname
@@ -605,6 +608,7 @@ async function runCapture(tabId, options) {
           const report = await Audit.audit(tabId, page.label).catch(() => null);
           if (report) {
             report.performance = await measurePerformance(tabId, true).catch(() => null);
+            report.technology = await Tech.detect(tabId).catch(() => null);
             reports.push(report);
           }
         }
