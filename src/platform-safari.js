@@ -3,6 +3,7 @@
 (() => {
   self.BrowserSnapsPlatform = {
     supportsDeviceMetrics: false,
+    supportsNetworkTrace: false,
     beginCapture: async () => {},
     endCapture: async () => {},
     ensureProcessor: async () => {},
@@ -10,6 +11,8 @@
       throw new Error("Safari captures the active visible tab directly.");
     },
     clearDeviceMetrics: async () => {},
-    setDeviceMetrics: async () => {}
+    resetNetworkTrace: async () => {},
+    setDeviceMetrics: async () => {},
+    takeNetworkTrace: async () => null
   };
 })();

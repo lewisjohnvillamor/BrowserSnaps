@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.0 - 2026-08-21
+
+- Added Core Web Vitals and page weight measurement to every audit.
+- Rated LCP, FCP, TTFB, CLS, and DOM Content Loaded against Google's published thresholds.
+- Collected real transfer sizes and response headers over the DevTools protocol already attached during Chromium captures.
+- Fell back to the Performance API on Firefox and Safari, and flagged when cross-origin responses hide their size.
+- Reported uncompressed text responses, long tasks, render-blocking head resources, and third-party origin sprawl.
+- Added a performance panel with per-metric verdicts and a resource weight table to the results viewer.
+
 ## 1.6.0 - 2026-08-21
 
 - Added an Audit this page quick action covering SEO, accessibility, and page-quality checks.

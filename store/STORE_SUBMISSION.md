@@ -1,6 +1,6 @@
 # Chrome Web Store Submission Reference
 
-BrowserSnaps v1.6.0 has separate copy-ready submission files:
+BrowserSnaps v1.7.0 has separate copy-ready submission files:
 
 - [`LISTING_COPY.md`](LISTING_COPY.md) contains the Store listing, single-purpose statement, permission justifications, privacy-practices answers, and distribution answers.
 - [`SUBMISSION_CHECKLIST.md`](SUBMISSION_CHECKLIST.md) provides the complete upload, review, testing, and release checklist.

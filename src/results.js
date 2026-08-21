@@ -1,4 +1,4 @@
-/* global BrowserSnapsPdf, BrowserSnapsStore, BrowserSnapsZip, OffscreenCanvas, chrome, createImageBitmap */
+/* global BrowserSnapsPdf, BrowserSnapsPerf, BrowserSnapsStore, BrowserSnapsZip, OffscreenCanvas, chrome, createImageBitmap */
 
 const elements = {
   auditList: document.querySelector("#audit-list"),
@@ -176,6 +176,56 @@ function tallies(counts) {
   return wrapper;
 }
 
+function metricsBlock(performance) {
+  const block = document.createElement("div");
+  block.className = "metrics";
+
+  const heading = document.createElement("div");
+  heading.className = "metrics-heading";
+  heading.append(Object.assign(document.createElement("strong"), { textContent: "Performance" }));
+  heading.append(Object.assign(document.createElement("span"), {
+    textContent: performance.freshLoad
+      ? `measured on a fresh load via ${performance.measuredWith === "devtools" ? "DevTools" : "the Performance API"}`
+      : "measured from the load already open in the tab, so caches may flatter it"
+  }));
+  block.append(heading);
+
+  const grid = document.createElement("div");
+  grid.className = "metric-grid";
+  for (const row of BrowserSnapsPerf.metricRows(performance)) {
+    const cell = document.createElement("div");
+    cell.className = "metric";
+    cell.dataset.verdict = row.verdict;
+    cell.append(Object.assign(document.createElement("span"), { className: "metric-label", textContent: row.label }));
+    cell.append(Object.assign(document.createElement("strong"), { textContent: row.value }));
+    grid.append(cell);
+  }
+  block.append(grid);
+
+  const weights = document.createElement("table");
+  weights.className = "weights";
+  const header = weights.insertRow();
+  for (const label of ["Resource", "Requests", "Transferred"]) {
+    header.append(Object.assign(document.createElement("th"), { textContent: label }));
+  }
+  for (const row of BrowserSnapsPerf.weightRows(performance)) {
+    const line = weights.insertRow();
+    line.insertCell().textContent = row.label;
+    line.insertCell().textContent = String(row.count);
+    line.insertCell().textContent = row.bytes;
+  }
+  block.append(weights);
+
+  if (performance.measuredWith !== "devtools" && performance.resources.opaqueResources) {
+    block.append(Object.assign(document.createElement("p"), {
+      className: "metrics-note",
+      textContent: `${performance.resources.opaqueResources} cross-origin responses report no size without Timing-Allow-Origin, so the transferred totals are a floor, not the real weight.`
+    }));
+  }
+
+  return block;
+}
+
 function auditSection(report) {
   const section = document.createElement("section");
   section.className = "audit-page";
@@ -190,11 +240,14 @@ function auditSection(report) {
   link.rel = "noreferrer";
   link.textContent = report.pageUrl;
   heading.append(link);
-  header.append(heading, tallies(report.counts));
+  header.append(heading, tallies(reportCounts(report)));
   section.append(header);
 
-  if (report.findings.length) {
-    for (const finding of report.findings) section.append(findingRow(finding));
+  if (report.performance) section.append(metricsBlock(report.performance));
+
+  const findings = [...report.findings, ...(report.performance?.findings || [])];
+  if (findings.length) {
+    for (const finding of sortBySeverity(findings)) section.append(findingRow(finding));
   } else {
     section.append(Object.assign(document.createElement("p"), {
       className: "audit-clear",
@@ -243,7 +296,8 @@ function renderAudit() {
     row.className = "capture-item";
     const copy = document.createElement("span");
     copy.append(Object.assign(document.createElement("strong"), { textContent: report.pageLabel }));
-    const total = report.counts.critical + report.counts.warning + report.counts.notice;
+    const counts = reportCounts(report);
+    const total = counts.critical + counts.warning + counts.notice;
     copy.append(Object.assign(document.createElement("span"), {
       textContent: total ? `${total} finding${total === 1 ? "" : "s"}` : "No issues"
     }));
@@ -253,6 +307,18 @@ function renderAudit() {
     });
     return row;
   }));
+}
+
+const SEVERITY_ORDER = { critical: 0, warning: 1, notice: 2 };
+
+function sortBySeverity(findings) {
+  return [...findings].sort((first, second) => SEVERITY_ORDER[first.severity] - SEVERITY_ORDER[second.severity]);
+}
+
+function reportCounts(report) {
+  const counts = { ...report.counts };
+  for (const severity of Object.keys(counts)) counts[severity] += report.performance?.counts?.[severity] || 0;
+  return counts;
 }
 
 function countSeverities(findings) {
