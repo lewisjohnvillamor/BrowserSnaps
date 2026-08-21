@@ -32,6 +32,7 @@ Key features:
 - Use the current browser size or desktop, laptop, tablet, and mobile presets
 - Trigger lazy-loaded and scroll-animated page sections
 - Stitch visible viewport tiles into continuous full-page captures
+- Audit any page for SEO, accessibility, and page-quality issues
 - Save every image on the current page with one click, without capturing
 - Track progress in a small on-page indicator instead of a tab that opens itself
 - Preview and select results before downloading
@@ -61,7 +62,7 @@ https://github.com/lewisjohnvillamor/BrowserSnaps/blob/main/PRIVACY.md
 
 ## Single purpose
 
-Capture user-selected website pages at user-selected viewport sizes and export the resulting full-page screenshots as PDF or PNG files.
+Document user-selected website pages: capture them at user-selected viewport sizes for PDF or PNG export, save the images they contain, and report the SEO, accessibility, and page-quality issues found in the same page load.
 
 ## Permission justifications
 
@@ -71,7 +72,7 @@ Grants temporary access only to the tab where the user opens BrowserSnaps, so th
 
 **scripting**
 
-Runs local scripts in the user-invoked tab to discover navigation links and image sources, scroll the page, wait for fonts and images, stabilize animated or sticky elements, show the capture indicator, and restore the page afterward.
+Runs local scripts in the user-invoked tab to discover navigation links and image sources, inspect page markup for the audit, scroll the page, wait for fonts and images, stabilize animated or sticky elements, show the capture indicator, and restore the page afterward.
 
 **debugger**
 

@@ -1,6 +1,8 @@
 /* global BrowserSnapsPdf, BrowserSnapsStore, BrowserSnapsZip, OffscreenCanvas, chrome, createImageBitmap */
 
 const elements = {
+  auditList: document.querySelector("#audit-list"),
+  auditPanel: document.querySelector("#audit-panel"),
   captureImage: document.querySelector("#capture-image"),
   captureList: document.querySelector("#capture-list"),
   captureMeta: document.querySelector("#capture-meta"),
@@ -15,7 +17,10 @@ const elements = {
   previous: document.querySelector("#previous"),
   preview: document.querySelector("#preview"),
   sessionHost: document.querySelector("#session-host"),
+  sessionKind: document.querySelector("#session-kind"),
   sessionTitle: document.querySelector("#session-title"),
+  viewAudit: document.querySelector("#view-audit"),
+  viewCaptures: document.querySelector("#view-captures"),
   toast: document.querySelector("#toast"),
   zoomIn: document.querySelector("#zoom-in"),
   zoomOut: document.querySelector("#zoom-out"),
@@ -24,6 +29,7 @@ const elements = {
 
 const state = {
   activeIndex: 0,
+  view: "captures",
   cache: new Map(),
   objectUrl: null,
   selected: new Set(),
@@ -123,6 +129,153 @@ function renderList() {
   });
 }
 
+function auditReports() {
+  return state.session.audits || [];
+}
+
+function findingRow(finding) {
+  const row = document.createElement("div");
+  row.className = "finding";
+  row.dataset.severity = finding.severity;
+  row.append(Object.assign(document.createElement("span"), { className: "finding-flag" }));
+
+  const copy = document.createElement("div");
+  copy.append(Object.assign(document.createElement("strong"), { textContent: finding.title }));
+  copy.append(Object.assign(document.createElement("p"), { textContent: finding.detail }));
+  if (finding.evidence?.length) {
+    const list = document.createElement("ul");
+    for (const item of finding.evidence) {
+      const entry = document.createElement("li");
+      entry.textContent = item;
+      entry.title = item;
+      list.append(entry);
+    }
+    copy.append(list);
+  }
+  row.append(copy);
+  return row;
+}
+
+function tallies(counts) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "tallies";
+  const labels = { critical: "critical", warning: "warning", notice: "notice" };
+  for (const severity of ["critical", "warning", "notice"]) {
+    if (!counts[severity]) continue;
+    const badge = document.createElement("span");
+    badge.className = `tally ${severity}`;
+    badge.textContent = `${counts[severity]} ${labels[severity]}`;
+    wrapper.append(badge);
+  }
+  if (!wrapper.childElementCount) {
+    const badge = document.createElement("span");
+    badge.className = "tally clear";
+    badge.textContent = "No issues";
+    wrapper.append(badge);
+  }
+  return wrapper;
+}
+
+function auditSection(report) {
+  const section = document.createElement("section");
+  section.className = "audit-page";
+  section.id = `audit-${encodeURIComponent(report.pageUrl)}`;
+
+  const header = document.createElement("header");
+  const heading = document.createElement("div");
+  heading.append(Object.assign(document.createElement("h2"), { textContent: report.pageLabel }));
+  const link = document.createElement("a");
+  link.href = report.pageUrl;
+  link.target = "_blank";
+  link.rel = "noreferrer";
+  link.textContent = report.pageUrl;
+  heading.append(link);
+  header.append(heading, tallies(report.counts));
+  section.append(header);
+
+  if (report.findings.length) {
+    for (const finding of report.findings) section.append(findingRow(finding));
+  } else {
+    section.append(Object.assign(document.createElement("p"), {
+      className: "audit-clear",
+      textContent: "Every check passed on this page."
+    }));
+  }
+
+  const facts = document.createElement("div");
+  facts.className = "audit-facts";
+  const summary = [
+    `${report.facts.content.wordCount} words`,
+    `${report.facts.images.total} images`,
+    `${report.facts.links.total} links`,
+    `${report.facts.headings.total} headings`
+  ];
+  if (report.facts.generator) summary.push(`generator: ${report.facts.generator}`);
+  if (report.facts.structuredData.types.length) summary.push(`schema: ${report.facts.structuredData.types.join(", ")}`);
+  for (const item of summary) facts.append(Object.assign(document.createElement("span"), { textContent: item }));
+  section.append(facts);
+
+  return section;
+}
+
+function renderAudit() {
+  const reports = auditReports();
+  const crossPage = state.session.auditCrossPage || [];
+  elements.auditPanel.replaceChildren();
+
+  if (crossPage.length) {
+    const section = document.createElement("section");
+    section.className = "audit-page";
+    const header = document.createElement("header");
+    header.append(
+      Object.assign(document.createElement("h2"), { textContent: "Across the captured pages" }),
+      tallies(countSeverities(crossPage))
+    );
+    section.append(header);
+    for (const finding of crossPage) section.append(findingRow(finding));
+    elements.auditPanel.append(section);
+  }
+
+  for (const report of reports) elements.auditPanel.append(auditSection(report));
+
+  elements.auditList.replaceChildren(...reports.map((report, index) => {
+    const row = document.createElement("div");
+    row.className = "capture-item";
+    const copy = document.createElement("span");
+    copy.append(Object.assign(document.createElement("strong"), { textContent: report.pageLabel }));
+    const total = report.counts.critical + report.counts.warning + report.counts.notice;
+    copy.append(Object.assign(document.createElement("span"), {
+      textContent: total ? `${total} finding${total === 1 ? "" : "s"}` : "No issues"
+    }));
+    row.append(document.createElement("span"), copy);
+    row.addEventListener("click", () => {
+      elements.auditPanel.children[crossPage.length ? index + 1 : index]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return row;
+  }));
+}
+
+function countSeverities(findings) {
+  const counts = { critical: 0, warning: 0, notice: 0 };
+  for (const finding of findings) counts[finding.severity] += 1;
+  return counts;
+}
+
+function setView(view) {
+  state.view = view;
+  const auditing = view === "audit";
+  elements.viewAudit.classList.toggle("active", auditing);
+  elements.viewCaptures.classList.toggle("active", !auditing);
+  elements.auditPanel.hidden = !auditing;
+  elements.auditList.hidden = !auditing;
+  elements.captureList.hidden = auditing;
+  elements.loading.hidden = true;
+  elements.preview.hidden = auditing || !state.session.captures.length;
+  document.querySelector(".selection-row").hidden = auditing;
+  document.querySelector(".toolbar-center").hidden = auditing;
+  document.querySelector(".downloads").hidden = auditing;
+}
+
 function selectedMetadata() {
   return state.session.captures.filter((capture) => state.selected.has(capture.id));
 }
@@ -210,6 +363,8 @@ async function startExport(format) {
   }
 }
 
+elements.viewCaptures.addEventListener("click", () => setView("captures"));
+elements.viewAudit.addEventListener("click", () => setView("audit"));
 elements.previous.addEventListener("click", () => showCapture(state.activeIndex - 1));
 elements.next.addEventListener("click", () => showCapture(state.activeIndex + 1));
 elements.zoomOut.addEventListener("click", () => {
@@ -240,10 +395,23 @@ document.querySelector("#select-none").addEventListener("click", () => {
     const sessionId = parameters.get("session");
     if (!sessionId) throw new Error("The capture session is missing.");
     state.session = await BrowserSnapsStore.getSession(sessionId);
-    if (!state.session?.captures?.length) throw new Error("These capture results have expired.");
-    state.session.captures.forEach((capture) => state.selected.add(capture.id));
+    if (!state.session) throw new Error("These results have expired.");
+    const hasCaptures = Boolean(state.session.captures?.length);
+    const hasAudit = Boolean(state.session.audits?.length);
+    if (!hasCaptures && !hasAudit) throw new Error("These results have expired.");
+
     elements.sessionTitle.textContent = state.session.title;
     elements.sessionHost.textContent = state.session.hostname;
+    elements.sessionKind.textContent = hasCaptures ? "Capture results" : "Page audit";
+    elements.viewAudit.hidden = !hasAudit;
+    if (hasAudit) renderAudit();
+
+    if (!hasCaptures) {
+      setView("audit");
+      return;
+    }
+
+    state.session.captures.forEach((capture) => state.selected.add(capture.id));
     elements.layout.value = state.session.outputLayout || "combined";
     [elements.downloadPdf, elements.downloadPng, elements.downloadBoth].forEach((button) => button.classList.remove("primary"));
     elements[state.session.outputFormat === "pdf" ? "downloadPdf" : state.session.outputFormat === "png" ? "downloadPng" : "downloadBoth"].classList.add("primary");

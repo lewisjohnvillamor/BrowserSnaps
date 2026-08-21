@@ -24,6 +24,7 @@ const elements = {
   statusCount: document.querySelector("#status-count"),
   progressBar: document.querySelector("#progress-bar"),
   viewResults: document.querySelector("#view-results"),
+  auditPage: document.querySelector("#audit-page"),
   grabImages: document.querySelector("#grab-images"),
   imageCount: document.querySelector("#image-count"),
   error: document.querySelector("#error")
@@ -142,6 +143,7 @@ function renderImageAction(count, available = true) {
   // The count only covers <img> tags; posters and CSS backgrounds are found at download time.
   imagesAvailable = available;
   elements.grabImages.disabled = !available;
+  elements.auditPage.disabled = !available;
   if (!available) elements.imageCount.textContent = "Unavailable on this page";
   else if (count) elements.imageCount.textContent = `Download ${count}+ image${count === 1 ? "" : "s"} straight to your Downloads folder`;
   else elements.imageCount.textContent = "Checks image tags, video posters, and CSS backgrounds";
@@ -164,6 +166,7 @@ function setRunning(running) {
     control.disabled = running;
   });
   elements.grabImages.disabled = running || !imagesAvailable;
+  elements.auditPage.disabled = running || !imagesAvailable;
   if (running) elements.viewResults.hidden = true;
 }
 
@@ -214,6 +217,19 @@ elements.capture.addEventListener("click", async () => {
   if (!response?.ok) {
     setRunning(false);
     showError(response?.error || "BrowserSnaps could not start the capture.");
+    return;
+  }
+  window.close();
+});
+
+elements.auditPage.addEventListener("click", async () => {
+  elements.error.hidden = true;
+  setRunning(true);
+  applyStatus({ running: true, completed: 0, total: 1, message: "Auditing this page…" });
+  const response = await chrome.runtime.sendMessage({ type: "START_AUDIT", tabId: activeTab.id });
+  if (!response?.ok) {
+    setRunning(false);
+    showError(response?.error || "BrowserSnaps could not audit this page.");
     return;
   }
   window.close();

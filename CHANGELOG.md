@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0 - 2026-08-21
+
+- Added an Audit this page quick action covering SEO, accessibility, and page-quality checks.
+- Audited every selected page during a capture, on the same page load the screenshots use.
+- Added an Audit view to the results viewer with findings grouped by page and severity.
+- Added duplicate title and description detection across the pages in one capture.
+- Read robots.txt and sitemap.xml from the audited site's own origin to check crawlability.
+- Broadened the store single-purpose statement to cover page documentation rather than screenshots alone.
+
 ## 1.5.0 - 2026-08-21
 
 - Replaced the automatic results tab with a small on-page capture indicator.

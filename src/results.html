@@ -9,6 +9,10 @@
   <body>
     <header class="toolbar">
       <div class="brand"><span class="camera" aria-hidden="true"></span><strong>BrowserSnaps</strong></div>
+      <div class="views" role="tablist">
+        <button id="view-captures" class="view-tab active" type="button" role="tab">Captures</button>
+        <button id="view-audit" class="view-tab" type="button" role="tab" hidden>Audit</button>
+      </div>
       <div class="toolbar-center">
         <button id="previous" type="button" title="Previous capture">‹</button>
         <span id="counter">0 / 0</span>
@@ -31,7 +35,7 @@
     <div class="workspace">
       <aside>
         <div class="session-copy">
-          <span>Capture results</span>
+          <span id="session-kind">Capture results</span>
           <strong id="session-title">Loading…</strong>
           <small id="session-host"></small>
         </div>
@@ -40,6 +44,7 @@
           <button id="select-none" type="button">Select none</button>
         </div>
         <div id="capture-list" class="capture-list"></div>
+        <div id="audit-list" class="capture-list" hidden></div>
         <p class="privacy">Stored locally and automatically removed after 24 hours.</p>
       </aside>
 
@@ -52,6 +57,7 @@
             <span id="capture-meta"></span>
           </figcaption>
         </figure>
+        <section id="audit-panel" class="audit-panel" hidden></section>
       </main>
     </div>
 

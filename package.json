@@ -1,6 +1,6 @@
 {
   "name": "browser-snaps",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "description": "A lightweight Chrome extension for capturing website navigation pages as PDF or PNG.",
   "author": "Lewis John Villamor",
@@ -9,7 +9,7 @@
     "build:firefox": "node scripts/build-firefox.mjs",
     "build:safari": "node scripts/build-safari.mjs",
     "build:store": "node scripts/build-store.mjs",
-    "check": "node --check src/background.js && node --check src/indicator.js && node --check src/offscreen.js && node --check src/pdf.js && node --check src/platform-chrome.js && node --check src/platform-firefox.js && node --check src/platform-safari.js && node --check src/popup.js && node --check src/results.js && node --check src/storage.js && node --check src/zip.js",
+    "check": "node --check src/audit.js && node --check src/background.js && node --check src/indicator.js && node --check src/offscreen.js && node --check src/pdf.js && node --check src/platform-chrome.js && node --check src/platform-firefox.js && node --check src/platform-safari.js && node --check src/popup.js && node --check src/results.js && node --check src/storage.js && node --check src/zip.js",
     "test": "node --test tests/*.test.mjs",
     "validate:firefox": "npm run check && npm test && npm run build:firefox",
     "validate:safari": "npm run check && npm test && npm run build:safari",

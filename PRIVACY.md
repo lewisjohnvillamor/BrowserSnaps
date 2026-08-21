@@ -2,7 +2,7 @@
 
 Last updated: August 13, 2026
 
-BrowserSnaps is a local-first Chrome extension that captures user-selected website pages and exports them as PDF or PNG files. This policy explains how BrowserSnaps handles information when you use it.
+BrowserSnaps is a local-first Chrome extension that captures user-selected website pages, saves the images they contain, audits them for SEO and accessibility issues, and exports the results as PDF or PNG files. This policy explains how BrowserSnaps handles information when you use it.
 
 ## Information BrowserSnaps handles
 
@@ -13,6 +13,8 @@ BrowserSnaps processes the following information only after you open the extensi
 - Visible webpage content rendered in the browser, including text and images, for the purpose of creating screenshots.
 - Capture settings such as selected pages, viewport sizes, output format, and file organization.
 - Generated screenshots and related capture metadata.
+- Page markup read during an audit, including titles, meta tags, headings, image attributes, link attributes, form labels, and structured data.
+- The audited site's own /robots.txt and /sitemap.xml, requested from that same site.
 
 This information may include personal or sensitive content if you choose to capture a signed-in or private webpage. BrowserSnaps does not inspect password fields or authentication tokens, but anything visibly rendered on a selected page may appear in the resulting screenshot.
 
@@ -23,6 +25,7 @@ BrowserSnaps uses this information solely to:
 - Discover same-origin navigation pages selected by the user.
 - Render, scroll, capture, stitch, preview, and export screenshots.
 - Restore the original tab, URL, zoom level, and scroll position after capture.
+- Produce a local SEO, accessibility, and page-quality report for pages the user selects.
 
 BrowserSnaps does not use website content or browsing activity for advertising, analytics, profiling, credit decisions, or any unrelated purpose.
 
@@ -34,7 +37,7 @@ BrowserSnaps has no account system and does not synchronize capture data between
 
 ## Sharing and transmission
 
-BrowserSnaps does not transmit webpage content, URLs, screenshots, capture settings, or generated files to the developer or to any third party. It has no analytics service, advertising service, backend, or remote-code dependency.
+BrowserSnaps does not transmit webpage content, URLs, screenshots, audit results, capture settings, or generated files to the developer or to any third party. It has no analytics service, advertising service, backend, or remote-code dependency. Audits are computed entirely in your browser and are never sent to a scoring service.
 
 The optional Source and Support links open external websites only after the user selects them. BrowserSnaps does not send captured data to those websites.
 
