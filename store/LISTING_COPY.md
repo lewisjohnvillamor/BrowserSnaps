@@ -32,6 +32,7 @@ Key features:
 - Use the current browser size or desktop, laptop, tablet, and mobile presets
 - Trigger lazy-loaded and scroll-animated page sections
 - Stitch visible viewport tiles into continuous full-page captures
+- Track progress in a small on-page indicator instead of a tab that opens itself
 - Preview and select results before downloading
 - Export one combined PDF, individual PNGs, or ZIP packages
 - Optionally use a dedicated capture window while continuing work elsewhere

@@ -23,6 +23,7 @@ const elements = {
   statusText: document.querySelector("#status-text"),
   statusCount: document.querySelector("#status-count"),
   progressBar: document.querySelector("#progress-bar"),
+  viewResults: document.querySelector("#view-results"),
   error: document.querySelector("#error")
 };
 
@@ -142,6 +143,7 @@ function setRunning(running) {
   document.querySelectorAll("input, #select-all, #select-none").forEach((control) => {
     control.disabled = running;
   });
+  if (running) elements.viewResults.hidden = true;
 }
 
 function applyStatus(status) {
@@ -153,6 +155,8 @@ function applyStatus(status) {
   const total = status.total || 0;
   elements.statusCount.textContent = total ? `${completed}/${total}` : "";
   elements.progressBar.style.width = total ? `${Math.round((completed / total) * 100)}%` : "4%";
+  elements.viewResults.hidden = Boolean(status.running) || !status.sessionId;
+  elements.viewResults.dataset.sessionId = status.sessionId || "";
   if (status.error) showError(status.message);
 }
 
@@ -191,6 +195,13 @@ elements.capture.addEventListener("click", async () => {
     showError(response?.error || "BrowserSnaps could not start the capture.");
     return;
   }
+  window.close();
+});
+
+elements.viewResults.addEventListener("click", async () => {
+  const sessionId = elements.viewResults.dataset.sessionId;
+  if (!sessionId) return;
+  await chrome.runtime.sendMessage({ type: "OPEN_RESULTS", sessionId });
   window.close();
 });
 

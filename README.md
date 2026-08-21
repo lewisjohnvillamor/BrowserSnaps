@@ -37,6 +37,8 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 - Neutralizes animation and repeating fixed or sticky elements during capture
 - Stitches the viewport tiles into one continuous full-page image
 - Paginates long captures onto clean portrait Letter sheets instead of oversized PDF pages
+- Shows a small on-page capture indicator with live progress and a Cancel button
+- Ends with a "View results" button in that indicator instead of taking over a new tab
 - Opens a local full-page viewer with zoom and capture selection
 - Exports PDF, PNG, or a ZIP containing both
 - Combines all results or separates them by screen size
@@ -47,7 +49,9 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 
 ## Results viewer
 
-After capturing, BrowserSnaps opens a local results page where you can preview every page and screen size, change the zoom, untick unwanted captures, and choose the final download format.
+While capturing, BrowserSnaps shows a small indicator in the corner of the page. It reports the current page, screen size, and tile, offers a Cancel button, and hides itself for each screenshot so it never appears in a capture. When the run finishes, the indicator turns into a **View results** button — nothing opens on its own.
+
+Selecting **View results** opens a local results page where you can preview every page and screen size, change the zoom, untick unwanted captures, and choose the final download format. The same button is available from the extension popup, and BrowserSnaps falls back to opening the results tab directly on pages that cannot host the indicator.
 
 ![BrowserSnaps results viewer showing a full-page capture and PDF and PNG export controls](docs/screenshots/browser-snaps-results.png)
 

@@ -1,8 +1,10 @@
 /* global chrome */
 
 if (!self.BrowserSnapsPlatform && typeof importScripts === "function") importScripts("platform-chrome.js");
+if (!self.BrowserSnapsIndicator && typeof importScripts === "function") importScripts("indicator.js");
 
 const Platform = self.BrowserSnapsPlatform;
+const Indicator = self.BrowserSnapsIndicator;
 const TILE_OVERLAP = 80;
 const TILE_DELAY = 450;
 const jobs = new Map();
@@ -197,6 +199,7 @@ async function settleAt(tabId, requestedY) {
           image.addEventListener("error", resolve, { once: true });
         }));
       await Promise.race([Promise.all(pending), delay(2_500)]);
+      document.getElementById("browsersnaps-indicator")?.style.setProperty("visibility", "hidden", "important");
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       return {
         y: window.scrollY,
@@ -251,8 +254,14 @@ async function capturePage(tabId, windowId, profile, page, dedicatedWindow) {
   while (true) {
     if (jobs.get(tabId)?.cancelled) throw new Error("Capture cancelled.");
     const estimatedTiles = Math.max(index + 1, Math.ceil((documentHeight - metrics.height) / step) + 1);
-    publishStatus(tabId, {
-      message: `Capturing ${page.label} · ${profile.label} · tile ${index + 1}/${estimatedTiles}`
+    const message = `Capturing ${page.label} · ${profile.label} · tile ${index + 1}/${estimatedTiles}`;
+    publishStatus(tabId, { message });
+    const job = jobs.get(tabId);
+    await Indicator.show(tabId, {
+      phase: "running",
+      message,
+      completed: job?.completed || 0,
+      total: job?.total || 0
     });
     const settled = await settleAt(tabId, requestedY);
     documentHeight = Math.max(documentHeight, settled.documentHeight);
@@ -376,9 +385,11 @@ async function runCapture(tabId, options) {
   let workspace;
   let sessionId;
   let failureMessage;
+  let wasCancelled = false;
 
   jobs.set(tabId, { tabId, running: true, cancelled: false, completed: 0, total, message: "Preparing capture…" });
   updateBadge(tabId, "0%", "#2563eb");
+  await Indicator.show(tabId, { phase: "running", message: "Starting capture…", completed: 0, total });
 
   try {
     await pause(500);
@@ -415,10 +426,12 @@ async function runCapture(tabId, options) {
     publishStatus(tabId, {
       running: false,
       completed: total,
+      sessionId,
       message: `Done — ${total} page view${total === 1 ? "" : "s"} ready.`
     });
   } catch (error) {
     const cancelled = jobs.get(tabId)?.cancelled;
+    wasCancelled = Boolean(cancelled);
     updateBadge(tabId, "!", cancelled ? "#64748b" : "#dc2626");
     publishStatus(tabId, {
       running: false,
@@ -442,21 +455,31 @@ async function runCapture(tabId, options) {
     setTimeout(() => updateBadge(tabId, ""), 8_000);
   }
 
-  if (sessionId) {
-    const resultUrl = chrome.runtime.getURL(`src/results.html?session=${encodeURIComponent(sessionId)}`);
-    await chrome.tabs.create({
-      windowId: workspace?.originalWindowId || originalTab.windowId,
-      url: resultUrl,
-      active: true
-    }).catch(() => chrome.tabs.create({ url: resultUrl, active: true }));
-  } else if (failureMessage) {
-    const errorUrl = chrome.runtime.getURL(`src/results.html?error=${encodeURIComponent(failureMessage)}`);
-    await chrome.tabs.create({
-      windowId: workspace?.originalWindowId || originalTab.windowId,
-      url: errorUrl,
-      active: true
-    }).catch(() => chrome.tabs.create({ url: errorUrl, active: true }));
-  }
+  if (!sessionId && !failureMessage) return;
+
+  const announced = await Indicator.show(tabId, sessionId
+    ? {
+        phase: "done",
+        message: `${total} page view${total === 1 ? "" : "s"} ready.`,
+        completed: total,
+        total,
+        sessionId
+      }
+    : {
+        phase: wasCancelled ? "cancelled" : "error",
+        message: failureMessage
+      });
+  if (announced) return;
+
+  // The page cannot host the indicator, so fall back to the standalone results tab.
+  const fallbackUrl = chrome.runtime.getURL(sessionId
+    ? `src/results.html?session=${encodeURIComponent(sessionId)}`
+    : `src/results.html?error=${encodeURIComponent(failureMessage)}`);
+  await chrome.tabs.create({
+    windowId: workspace?.originalWindowId || originalTab.windowId,
+    url: fallbackUrl,
+    active: true
+  }).catch(() => chrome.tabs.create({ url: fallbackUrl, active: true }));
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -467,6 +490,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
     runCapture(tabId, options);
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === "OPEN_RESULTS") {
+    const resultUrl = chrome.runtime.getURL(`src/results.html?session=${encodeURIComponent(message.sessionId)}`);
+    chrome.tabs.create({ url: resultUrl, active: true });
     sendResponse({ ok: true });
     return;
   }

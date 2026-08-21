@@ -16,9 +16,9 @@ Generated targets:
 
 | Engine | Unpacked directory | Archive |
 | --- | --- | --- |
-| Chromium | `dist/extension` | `dist/BrowserSnaps-v1.4.2-chromium.zip` |
-| Firefox | `dist/firefox-extension` | `dist/BrowserSnaps-v1.4.2-firefox.zip` |
-| Safari | `dist/safari-extension` | `dist/BrowserSnaps-v1.4.2-safari-source.zip` |
+| Chromium | `dist/extension` | `dist/BrowserSnaps-v1.5.0-chromium.zip` |
+| Firefox | `dist/firefox-extension` | `dist/BrowserSnaps-v1.5.0-firefox.zip` |
+| Safari | `dist/safari-extension` | `dist/BrowserSnaps-v1.5.0-safari-source.zip` |
 
 ## Current verification status
 
@@ -50,12 +50,19 @@ Run every case on a normal HTTP or HTTPS test site with at least two same-origin
 - [ ] Mobile responsive capture completes.
 - [ ] Original URL, zoom, and scroll position are restored.
 - [ ] Dedicated capture window returns the tab to its original window.
+- [ ] Capture indicator appears in the corner of the page when the capture starts.
+- [ ] Indicator reports the current page, screen size, and tile while capturing.
+- [ ] Indicator does not appear in any stitched capture.
+- [ ] Indicator's Cancel button stops the capture.
+- [ ] Indicator reports completion and no results tab opens on its own.
+- [ ] Indicator's View results button opens the results viewer.
+- [ ] Popup's View results button opens the same session after the capture finishes.
 - [ ] Results viewer opens and previews every selected capture.
 - [ ] PDF download opens and paginates correctly.
 - [ ] Single PNG download opens correctly.
 - [ ] Multi-capture ZIP opens and contains the expected files.
 - [ ] Cancellation stops safely and restores the tab.
-- [ ] A forced failure produces a visible error page.
+- [ ] A forced failure is reported in the indicator, or in a results tab when the page cannot host it.
 - [ ] No captured URL, page content, image, or file is transmitted over the network.
 
 ## Browser-specific installation
@@ -88,7 +95,7 @@ On Safari 27+, use the Develop menu's temporary web-extension loading support an
 
 | Browser/version | OS | Date | Tester | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Chrome | — | — | — | Pending v1.4.2 retest | v1.4.1 current-tab capture was confirmed working |
+| Chrome | — | — | — | Pending v1.5.0 retest | v1.4.1 current-tab capture was confirmed working |
 | Edge | — | — | — | Pending | |
 | Brave | — | — | — | Pending | |
 | Opera | — | — | — | Pending | |

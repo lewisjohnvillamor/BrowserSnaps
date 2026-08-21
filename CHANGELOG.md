@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0 - 2026-08-21
+
+- Replaced the automatic results tab with a small on-page capture indicator.
+- Reported live capture progress, the current page, screen size, and tile in the indicator.
+- Added Cancel and View results buttons to the indicator so results open only when you ask.
+- Hid the indicator for each screenshot so it never appears in a capture.
+- Reported capture failures and cancellations in the indicator instead of a separate error tab.
+- Added a View results button to the extension popup after a capture finishes.
+- Kept the standalone results tab as a fallback for pages that cannot host the indicator.
+
 ## 1.4.2 - 2026-08-13
 
 - Added a Firefox 140+ Manifest V3 build with an AMO add-on ID and built-in no-data-collection declaration.

@@ -22,6 +22,7 @@ function boot(platformFile) {
   };
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(new URL(`../src/${platformFile}`, import.meta.url), "utf8"), context);
+  vm.runInContext(fs.readFileSync(new URL("../src/indicator.js", import.meta.url), "utf8"), context);
   vm.runInContext(background, context);
   return { context, listeners };
 }
@@ -29,6 +30,7 @@ function boot(platformFile) {
 test("Chromium service worker starts with the DevTools platform adapter", () => {
   const { context, listeners } = boot("platform-chrome.js");
   assert.equal(context.self.BrowserSnapsPlatform.supportsDeviceMetrics, true);
+  assert.equal(typeof context.self.BrowserSnapsIndicator.show, "function");
   assert.equal(listeners.length, 1);
 });
 
