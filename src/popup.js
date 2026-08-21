@@ -31,7 +31,7 @@ const elements = {
 
 let activeTab;
 let pages = [];
-let imageCount = 0;
+let imagesAvailable = false;
 
 function showError(message) {
   elements.error.textContent = message;
@@ -138,13 +138,13 @@ async function discoverPages() {
   renderImageAction(result.images);
 }
 
-function renderImageAction(count) {
-  // Background images and video posters are found at download time, so this is a floor.
-  imageCount = count;
-  elements.grabImages.disabled = count === 0;
-  elements.imageCount.textContent = count
-    ? `Download ${count}+ image${count === 1 ? "" : "s"} straight to your Downloads folder`
-    : "No images found on this page";
+function renderImageAction(count, available = true) {
+  // The count only covers <img> tags; posters and CSS backgrounds are found at download time.
+  imagesAvailable = available;
+  elements.grabImages.disabled = !available;
+  if (!available) elements.imageCount.textContent = "Unavailable on this page";
+  else if (count) elements.imageCount.textContent = `Download ${count}+ image${count === 1 ? "" : "s"} straight to your Downloads folder`;
+  else elements.imageCount.textContent = "Checks image tags, video posters, and CSS backgrounds";
 }
 
 function selectedPages() {
@@ -163,7 +163,7 @@ function setRunning(running) {
   document.querySelectorAll("input, #select-all, #select-none").forEach((control) => {
     control.disabled = running;
   });
-  elements.grabImages.disabled = running || imageCount === 0;
+  elements.grabImages.disabled = running || !imagesAvailable;
   if (running) elements.viewResults.hidden = true;
 }
 
@@ -258,7 +258,7 @@ chrome.runtime.onMessage.addListener((message) => {
     elements.pageList.classList.remove("loading-list");
     elements.pageList.textContent = "No pages available.";
     elements.capture.disabled = true;
-    renderImageAction(0);
+    renderImageAction(0, false);
     showError(error.message);
   }
 })();
