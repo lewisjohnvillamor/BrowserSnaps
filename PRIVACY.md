@@ -15,6 +15,7 @@ BrowserSnaps processes the following information only after you open the extensi
 - Generated screenshots and related capture metadata.
 - Page markup read during an audit, including titles, meta tags, headings, image attributes, link attributes, form labels, and structured data.
 - Load timings and the sizes, URLs, and response headers of resources the audited page itself requests.
+- Whether a fixed list of well-known script variable names exists on the audited page, used only to name the technologies it runs on.
 - The audited site's own /robots.txt and /sitemap.xml, requested from that same site.
 
 This information may include personal or sensitive content if you choose to capture a signed-in or private webpage. BrowserSnaps does not inspect password fields or authentication tokens, but anything visibly rendered on a selected page may appear in the resulting screenshot.
@@ -26,7 +27,7 @@ BrowserSnaps uses this information solely to:
 - Discover same-origin navigation pages selected by the user.
 - Render, scroll, capture, stitch, preview, and export screenshots.
 - Restore the original tab, URL, zoom level, and scroll position after capture.
-- Produce a local SEO, accessibility, page-quality, and performance report for pages the user selects.
+- Produce a local SEO, accessibility, page-quality, performance, and technology report for pages the user selects.
 
 BrowserSnaps does not use website content or browsing activity for advertising, analytics, profiling, credit decisions, or any unrelated purpose.
 

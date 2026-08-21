@@ -26,6 +26,7 @@ function boot(platformFile) {
   vm.runInContext(fs.readFileSync(new URL("../src/indicator.js", import.meta.url), "utf8"), context);
   vm.runInContext(fs.readFileSync(new URL("../src/audit.js", import.meta.url), "utf8"), context);
   vm.runInContext(fs.readFileSync(new URL("../src/perf.js", import.meta.url), "utf8"), context);
+  vm.runInContext(fs.readFileSync(new URL("../src/tech.js", import.meta.url), "utf8"), context);
   vm.runInContext(background, context);
   return { context, listeners };
 }

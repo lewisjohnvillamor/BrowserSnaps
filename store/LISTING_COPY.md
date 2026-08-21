@@ -34,6 +34,7 @@ Key features:
 - Stitch visible viewport tiles into continuous full-page captures
 - Audit any page for SEO, accessibility, and page-quality issues
 - Measure Core Web Vitals and page weight locally, with no third-party scoring service
+- Identify the frameworks, CMS, analytics, CDN, and server a page runs on
 - Save every image on the current page with one click, without capturing
 - Track progress in a small on-page indicator instead of a tab that opens itself
 - Preview and select results before downloading
@@ -73,7 +74,7 @@ Grants temporary access only to the tab where the user opens BrowserSnaps, so th
 
 **scripting**
 
-Runs local scripts in the user-invoked tab to discover navigation links and image sources, inspect page markup for the audit, scroll the page, wait for fonts and images, stabilize animated or sticky elements, show the capture indicator, and restore the page afterward.
+Runs local scripts in the user-invoked tab to discover navigation links and image sources, inspect page markup and script variables for the audit and technology report, scroll the page, wait for fonts and images, stabilize animated or sticky elements, show the capture indicator, and restore the page afterward.
 
 **debugger**
 

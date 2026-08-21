@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.0 - 2026-08-21
+
+- Added technology detection covering frameworks, CMSes, commerce, analytics, CDNs, hosting, and servers.
+- Read framework and platform versions where the page states them outright.
+- Marked each detection high or likely confidence based on how many independent signals agreed.
+- Read page globals from the main world, falling back to markup, resource, and header signals when a page blocks that injection.
+- Added a technology panel grouped by category to the audit report.
+
 ## 1.7.0 - 2026-08-21
 
 - Added Core Web Vitals and page weight measurement to every audit.
