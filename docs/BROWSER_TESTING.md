@@ -16,9 +16,9 @@ Generated targets:
 
 | Engine | Unpacked directory | Archive |
 | --- | --- | --- |
-| Chromium | `dist/extension` | `dist/BrowserSnaps-v1.5.0-chromium.zip` |
-| Firefox | `dist/firefox-extension` | `dist/BrowserSnaps-v1.5.0-firefox.zip` |
-| Safari | `dist/safari-extension` | `dist/BrowserSnaps-v1.5.0-safari-source.zip` |
+| Chromium | `dist/extension` | `dist/BrowserSnaps-v1.6.0-chromium.zip` |
+| Firefox | `dist/firefox-extension` | `dist/BrowserSnaps-v1.6.0-firefox.zip` |
+| Safari | `dist/safari-extension` | `dist/BrowserSnaps-v1.6.0-safari-source.zip` |
 
 ## Current verification status
 
@@ -50,6 +50,10 @@ Run every case on a normal HTTP or HTTPS test site with at least two same-origin
 - [ ] Mobile responsive capture completes.
 - [ ] Original URL, zoom, and scroll position are restored.
 - [ ] Dedicated capture window returns the tab to its original window.
+- [ ] Audit this page opens a report listing findings by severity.
+- [ ] A page with a known issue (noindex, missing alt) produces the matching finding.
+- [ ] A capture of several pages shows an Audit view alongside the screenshots.
+- [ ] Duplicate titles across captured pages are reported in the cross-page section.
 - [ ] Save page images reports a plausible image count in the popup.
 - [ ] Save page images downloads the page's images into a single Downloads subfolder.
 - [ ] Save page images reports skipped inline images and tracking pixels in the summary.
@@ -99,7 +103,7 @@ On Safari 27+, use the Develop menu's temporary web-extension loading support an
 
 | Browser/version | OS | Date | Tester | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Chrome | — | — | — | Pending v1.5.0 retest | v1.4.1 current-tab capture was confirmed working |
+| Chrome | — | — | — | Pending v1.6.0 retest | v1.4.1 current-tab capture was confirmed working |
 | Edge | — | — | — | Pending | |
 | Brave | — | — | — | Pending | |
 | Opera | — | — | — | Pending | |

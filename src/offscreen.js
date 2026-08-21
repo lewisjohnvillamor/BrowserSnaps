@@ -57,6 +57,29 @@ async function stitchGroup(group, sessionId, index) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "PROCESS_AUDIT") {
+    (async () => {
+      try {
+        const sessionId = crypto.randomUUID();
+        await BrowserSnapsStore.saveSession({
+          id: sessionId,
+          createdAt: Date.now(),
+          hostname: message.session.hostname,
+          title: message.session.title,
+          captures: [],
+          audits: message.reports || [],
+          auditCrossPage: message.session.auditCrossPage || []
+        }, []);
+        await BrowserSnapsStore.cleanup();
+        sendResponse({ ok: true, sessionId });
+      } catch (error) {
+        sendResponse({ ok: false, error: error.message });
+      }
+    })();
+
+    return true;
+  }
+
   if (message.type !== "PROCESS_CAPTURES") return;
 
   (async () => {
@@ -74,7 +97,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         title: message.session.title,
         outputFormat: message.session.outputFormat,
         outputLayout: message.session.outputLayout,
-        captures: captures.map(({ blob, ...capture }) => capture)
+        captures: captures.map(({ blob, ...capture }) => capture),
+        audits: message.session.audits || [],
+        auditCrossPage: message.session.auditCrossPage || []
       };
       await BrowserSnapsStore.saveSession(session, captures);
       await BrowserSnapsStore.cleanup();

@@ -2,9 +2,11 @@
 
 if (!self.BrowserSnapsPlatform && typeof importScripts === "function") importScripts("platform-chrome.js");
 if (!self.BrowserSnapsIndicator && typeof importScripts === "function") importScripts("indicator.js");
+if (!self.BrowserSnapsAudit && typeof importScripts === "function") importScripts("audit.js");
 
 const Platform = self.BrowserSnapsPlatform;
 const Indicator = self.BrowserSnapsIndicator;
+const Audit = self.BrowserSnapsAudit;
 const TILE_OVERLAP = 80;
 const TILE_DELAY = 450;
 const MAX_IMAGES = 200;
@@ -420,8 +422,49 @@ async function runImageGrab(tabId) {
   }
 }
 
+async function runAudit(tabId) {
+  jobs.set(tabId, { tabId, running: true, cancelled: false, completed: 0, total: 1, message: "Auditing this page…" });
+  updateBadge(tabId, "…", "#2563eb");
+  await Indicator.show(tabId, { phase: "running", message: "Auditing this page…", completed: 0, total: 1 });
+
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    const report = await Audit.audit(tabId, tab.title || new URL(tab.url).hostname);
+    const sessionId = await processAudit([report], {
+      hostname: report.facts.hostname,
+      title: tab.title || report.facts.hostname
+    });
+
+    const summary = describeFindings(report.counts);
+    updateBadge(tabId, report.counts.critical ? String(report.counts.critical) : "✓", report.counts.critical ? "#dc2626" : "#16a34a");
+    publishStatus(tabId, { running: false, completed: 1, sessionId, message: `Done — ${summary}` });
+    await Indicator.show(tabId, { phase: "done", message: summary, completed: 1, total: 1, sessionId });
+  } catch (error) {
+    updateBadge(tabId, "!", "#dc2626");
+    publishStatus(tabId, { running: false, error: true, message: error.message });
+    await Indicator.show(tabId, { phase: "error", message: error.message });
+  } finally {
+    setTimeout(() => updateBadge(tabId, ""), 8_000);
+  }
+}
+
+function describeFindings(counts) {
+  const parts = [];
+  if (counts.critical) parts.push(`${counts.critical} critical`);
+  if (counts.warning) parts.push(`${counts.warning} warning${counts.warning === 1 ? "" : "s"}`);
+  if (counts.notice) parts.push(`${counts.notice} notice${counts.notice === 1 ? "" : "s"}`);
+  return parts.length ? `${parts.join(", ")} found.` : "No issues found.";
+}
+
 async function ensureOffscreenDocument() {
   await Platform.ensureProcessor();
+}
+
+async function processAudit(reports, session) {
+  await ensureOffscreenDocument();
+  const response = await chrome.runtime.sendMessage({ type: "PROCESS_AUDIT", reports, session });
+  if (!response?.ok) throw new Error(response?.error || "The audit could not be saved.");
+  return response.sessionId;
 }
 
 async function processCaptures(groups, session) {
@@ -509,6 +552,8 @@ async function runCapture(tabId, options) {
     func: () => ({ x: window.scrollX, y: window.scrollY })
   });
   const groups = [];
+  const reports = [];
+  const audited = new Set();
   const total = options.pages.length * options.profiles.length;
   let completed = 0;
   let workspace;
@@ -536,6 +581,12 @@ async function runCapture(tabId, options) {
         await applyProfile(tabId, workspace.windowId, profile, originalZoom);
         await loadPage(tabId, page.url);
         await pause(750);
+        if (!audited.has(page.url)) {
+          audited.add(page.url);
+          publishStatus(tabId, { message: `Auditing ${page.label}…` });
+          const report = await Audit.audit(tabId, page.label).catch(() => null);
+          if (report) reports.push(report);
+        }
         groups.push(await capturePage(tabId, workspace.windowId, profile, page, workspace.dedicated));
         completed += 1;
         updateBadge(tabId, `${Math.round((completed / total) * 100)}%`, "#2563eb");
@@ -548,7 +599,9 @@ async function runCapture(tabId, options) {
       hostname: new URL(originalUrl).hostname,
       title: originalTab.title || new URL(originalUrl).hostname,
       outputFormat: options.outputFormat || "both",
-      outputLayout: options.outputLayout || "combined"
+      outputLayout: options.outputLayout || "combined",
+      audits: reports.concat(),
+      auditCrossPage: Audit.crossPage(reports)
     });
 
     updateBadge(tabId, "✓", "#16a34a");
@@ -619,6 +672,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return;
     }
     runCapture(tabId, options);
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === "START_AUDIT") {
+    if ([...jobs.values()].some((job) => job.running)) {
+      sendResponse({ ok: false, error: "A BrowserSnaps job is already running." });
+      return;
+    }
+    runAudit(message.tabId);
     sendResponse({ ok: true });
     return;
   }

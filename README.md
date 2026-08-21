@@ -37,6 +37,7 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 - Neutralizes animation and repeating fixed or sticky elements during capture
 - Stitches the viewport tiles into one continuous full-page image
 - Paginates long captures onto clean portrait Letter sheets instead of oversized PDF pages
+- Audits any page for SEO, accessibility, and page-quality issues, with or without capturing
 - Saves every image on the current page with one click, no capture required
 - Shows a small on-page capture indicator with live progress and a Cancel button
 - Ends with a "View results" button in that indicator instead of taking over a new tab
@@ -47,6 +48,22 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 - Restores the original page, browser zoom, and scroll position when finished
 - Sends no website data to a server
 - Requires no build step and has no production dependencies
+
+## Page audit
+
+**Audit this page** in the popup runs about 30 checks against the page in your active tab and opens a report. Captures run the same audit on every selected page automatically, using the page load the screenshots already pay for, so the report and the screenshot describe the same moment.
+
+Findings are grouped into three severities:
+
+- **Critical** — `noindex`, a missing `<title>`, no responsive viewport tag, or a `robots.txt` that disallows the whole site
+- **Warning** — title and description length, missing `H1`, missing `alt` text, images without `width`/`height`, images served far larger than they display, `target="_blank"` without `rel="noopener"`, unlabelled form fields, buttons with no accessible name, invalid JSON-LD
+- **Notice** — canonical, heading-level skips, Open Graph and Twitter card completeness, missing structured data, positive `tabindex`, no `main` landmark, thin content, missing `robots.txt` or `sitemap.xml`
+
+Capturing several pages at once adds cross-page checks that a single-page audit cannot do — most usefully, pages sharing a title or meta description.
+
+Everything is measured locally in your browser. `robots.txt` and `sitemap.xml` are read from the audited site's own origin; nothing is sent anywhere else, and no scores are fetched from a third-party service.
+
+The audit does not measure load performance, and it deliberately does not print a score out of 100 — a homemade number that disagrees with Lighthouse would be worse than none.
 
 ## Save page images
 
