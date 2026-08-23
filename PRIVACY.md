@@ -15,6 +15,7 @@ BrowserSnaps processes the following information only after you open the extensi
 - Generated screenshots and related capture metadata.
 - Page markup read during an audit, including titles, meta tags, headings, image attributes, link attributes, form labels, and structured data.
 - Load timings and the sizes, URLs, and response headers of resources the audited page itself requests.
+- Screenshot frames of the audited page's own load, used only to compute Speed Index and discarded once the score is calculated.
 - Whether a fixed list of well-known script variable names exists on the audited page, used only to name the technologies it runs on.
 - The audited site's own /robots.txt and /sitemap.xml, requested from that same site.
 

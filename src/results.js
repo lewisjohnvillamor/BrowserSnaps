@@ -1,4 +1,4 @@
-/* global BrowserSnapsPdf, BrowserSnapsPerf, BrowserSnapsStore, BrowserSnapsTech, BrowserSnapsZip, OffscreenCanvas, chrome, createImageBitmap */
+/* global BrowserSnapsPdf, BrowserSnapsPerf, BrowserSnapsScore, BrowserSnapsStore, BrowserSnapsTech, BrowserSnapsZip, OffscreenCanvas, chrome, createImageBitmap */
 
 const elements = {
   auditList: document.querySelector("#audit-list"),
@@ -176,6 +176,50 @@ function tallies(counts) {
   return wrapper;
 }
 
+function labScoreBlock(lab) {
+  const score = lab.score;
+  const block = document.createElement("div");
+  block.className = "lab";
+
+  const gauge = document.createElement("div");
+  gauge.className = "gauge";
+  gauge.dataset.band = score.score === null ? "unknown" : BrowserSnapsScore.band(score.score / 100);
+  gauge.append(Object.assign(document.createElement("strong"), {
+    textContent: score.score === null ? "–" : String(score.score)
+  }));
+  gauge.append(Object.assign(document.createElement("span"), { textContent: score.formFactor }));
+
+  const detail = document.createElement("div");
+  detail.className = "lab-detail";
+  detail.append(Object.assign(document.createElement("strong"), { textContent: "Lab performance score" }));
+  detail.append(Object.assign(document.createElement("p"), {
+    textContent: score.complete
+      ? "Lighthouse's weighting and scoring curves, measured locally on a throttled reload. Not the PageSpeed Insights number: that uses simulated throttling on Google's hardware."
+      : `${score.missing.map((key) => BrowserSnapsScore.LABELS[key]).join(" and ")} could not be measured, so this is a partial score over ${Math.round(score.coverage * 100)}% of the usual weight and is not comparable to Lighthouse.`
+  }));
+
+  const table = document.createElement("table");
+  table.className = "lab-metrics";
+  const header = table.insertRow();
+  for (const label of ["Metric", "Weight", "Value", "Score"]) {
+    header.append(Object.assign(document.createElement("th"), { textContent: label }));
+  }
+  for (const row of score.rows) {
+    const line = table.insertRow();
+    line.dataset.band = row.band;
+    line.insertCell().textContent = row.label;
+    line.insertCell().textContent = `${row.weight}%`;
+    line.insertCell().textContent = row.value === null
+      ? "not measured"
+      : BrowserSnapsPerf.formatMetric(row.key === "cls" ? "cls" : "lcp", row.value);
+    line.insertCell().textContent = row.score === null ? "–" : String(Math.round(row.score * 100));
+  }
+  detail.append(table);
+
+  block.append(gauge, detail);
+  return block;
+}
+
 function metricsBlock(performance) {
   const block = document.createElement("div");
   block.className = "metrics";
@@ -286,6 +330,7 @@ function auditSection(report) {
   header.append(heading, tallies(reportCounts(report)));
   section.append(header);
 
+  if (report.lab?.score) section.append(labScoreBlock(report.lab));
   if (report.technology) section.append(technologyBlock(report.technology));
   if (report.performance) section.append(metricsBlock(report.performance));
 
