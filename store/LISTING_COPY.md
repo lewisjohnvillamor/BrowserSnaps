@@ -34,6 +34,7 @@ Key features:
 - Stitch visible viewport tiles into continuous full-page captures
 - Audit any page for SEO, accessibility, and page-quality issues
 - Measure Core Web Vitals and page weight locally, with no third-party scoring service
+- Optionally compute a Lighthouse-formula performance score on your own machine
 - Identify the frameworks, CMS, analytics, CDN, and server a page runs on
 - Save every image on the current page with one click, without capturing
 - Track progress in a small on-page indicator instead of a tab that opens itself
@@ -78,7 +79,7 @@ Runs local scripts in the user-invoked tab to discover navigation links and imag
 
 **debugger**
 
-Uses Chrome DevTools Protocol only during a user-started capture to apply selected responsive viewport dimensions, capture visible viewport tiles in the optional dedicated capture window, and read the sizes and headers of the page's own network responses for the local performance report. It attaches only to the selected capture tab and detaches when the capture finishes, fails, or is cancelled.
+Uses Chrome DevTools Protocol only during a user-started capture to apply selected responsive viewport dimensions, capture visible viewport tiles in the optional dedicated capture window, and read the sizes and headers of the page's own network responses, throttle the connection and record a screencast filmstrip of the page's own load for the optional local performance score. It attaches only to the selected capture tab and detaches when the capture finishes, fails, or is cancelled.
 
 **downloads**
 

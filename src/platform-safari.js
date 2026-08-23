@@ -4,6 +4,8 @@
   self.BrowserSnapsPlatform = {
     supportsDeviceMetrics: false,
     supportsNetworkTrace: false,
+    supportsFilmstrip: false,
+    supportsThrottling: false,
     beginCapture: async () => {},
     endCapture: async () => {},
     ensureProcessor: async () => {},
@@ -11,7 +13,11 @@
       throw new Error("Safari captures the active visible tab directly.");
     },
     clearDeviceMetrics: async () => {},
+    applyThrottling: async () => {},
+    clearThrottling: async () => {},
     resetNetworkTrace: async () => {},
+    startFilmstrip: async () => {},
+    stopFilmstrip: async () => null,
     setDeviceMetrics: async () => {},
     takeNetworkTrace: async () => null
   };

@@ -6,6 +6,8 @@
 }
 
 * { box-sizing: border-box; }
+/* Flex and grid displays override the UA [hidden] rule, so state it explicitly. */
+[hidden] { display: none !important; }
 html, body { width: 100%; height: 100%; margin: 0; }
 button, select { font: inherit; }
 button { cursor: pointer; }
@@ -92,6 +94,24 @@ figcaption { display: flex; justify-content: space-between; gap: 20px; margin-to
 .finding p { margin: 3px 0 0; color: #475569; font-size: 12px; line-height: 1.5; }
 .finding ul { margin: 8px 0 0; padding: 8px 10px; border-radius: 7px; background: #f8fafc; color: #475569; font-size: 11px; line-height: 1.6; list-style: none; }
 .finding li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.lab { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 16px; padding: 16px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; }
+.gauge { display: flex; flex: 0 0 auto; width: 96px; height: 96px; flex-direction: column; align-items: center; justify-content: center; border: 4px solid #cbd5e1; border-radius: 50%; background: #fff; }
+.gauge strong { font-size: 30px; font-variant-numeric: tabular-nums; line-height: 1; }
+.gauge span { margin-top: 3px; color: #64748b; font-size: 10px; text-transform: capitalize; }
+.gauge[data-band="good"] { border-color: #16a34a; color: #166534; }
+.gauge[data-band="fair"] { border-color: #f59e0b; color: #92400e; }
+.gauge[data-band="poor"] { border-color: #dc2626; color: #991b1b; }
+.lab-detail { flex: 1 1 320px; min-width: 0; }
+.lab-detail > strong { font-size: 12px; }
+.lab-detail p { margin: 4px 0 0; color: #475569; font-size: 11px; line-height: 1.5; }
+.lab-metrics { width: 100%; margin-top: 11px; border-collapse: collapse; font-size: 11px; }
+.lab-metrics th { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-weight: 700; text-align: left; }
+.lab-metrics th:not(:first-child), .lab-metrics td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.lab-metrics td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; }
+.lab-metrics tr[data-band="good"] td:last-child { color: #166534; font-weight: 700; }
+.lab-metrics tr[data-band="fair"] td:last-child { color: #92400e; font-weight: 700; }
+.lab-metrics tr[data-band="poor"] td:last-child { color: #991b1b; font-weight: 700; }
+
 .tech { margin-top: 16px; padding: 14px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; }
 .tech-row { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 6px 0; border-top: 1px solid #eef2f7; }
 .tech-row:first-of-type { border-top: 0; }

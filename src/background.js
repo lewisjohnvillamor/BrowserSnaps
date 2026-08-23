@@ -5,12 +5,14 @@ if (!self.BrowserSnapsIndicator && typeof importScripts === "function") importSc
 if (!self.BrowserSnapsAudit && typeof importScripts === "function") importScripts("audit.js");
 if (!self.BrowserSnapsPerf && typeof importScripts === "function") importScripts("perf.js");
 if (!self.BrowserSnapsTech && typeof importScripts === "function") importScripts("tech.js");
+if (!self.BrowserSnapsScore && typeof importScripts === "function") importScripts("score.js");
 
 const Platform = self.BrowserSnapsPlatform;
 const Indicator = self.BrowserSnapsIndicator;
 const Audit = self.BrowserSnapsAudit;
 const Perf = self.BrowserSnapsPerf;
 const Tech = self.BrowserSnapsTech;
+const Score = self.BrowserSnapsScore;
 const TILE_OVERLAP = 80;
 const TILE_DELAY = 450;
 const MAX_IMAGES = 200;
@@ -426,13 +428,36 @@ async function runImageGrab(tabId) {
   }
 }
 
-async function measurePerformance(tabId, freshLoad) {
+async function measurePerformance(tabId, freshLoad, options = {}) {
   const network = await Platform.takeNetworkTrace(tabId).catch(() => null);
-  const report = await Perf.measure(tabId, network);
-  return { ...report, freshLoad };
+  const frames = options.frames || null;
+  const report = await Perf.measure(tabId, network, frames);
+  const score = options.labScore
+    ? Score.computeScore(report.metrics, options.formFactor || "mobile")
+    : null;
+  return { ...report, freshLoad, score, throttled: Boolean(options.throttled) };
 }
 
-async function runAudit(tabId) {
+// A lab score needs a throttled navigation and a filmstrip, so the page is reloaded once.
+async function measureLabScore(tabId, url, formFactor) {
+  if (!Platform.supportsThrottling) return null;
+  try {
+    await Platform.applyThrottling(tabId);
+    await Platform.resetNetworkTrace(tabId).catch(() => {});
+    await Platform.startFilmstrip(tabId);
+    await loadPage(tabId, url);
+    await pause(1_200);
+    const frames = await Platform.stopFilmstrip(tabId);
+    return await measurePerformance(tabId, true, { frames, labScore: true, formFactor, throttled: true });
+  } catch (_) {
+    return null;
+  } finally {
+    await Platform.stopFilmstrip(tabId).catch(() => {});
+    await Platform.clearThrottling(tabId).catch(() => {});
+  }
+}
+
+async function runAudit(tabId, options = {}) {
   jobs.set(tabId, { tabId, running: true, cancelled: false, completed: 0, total: 1, message: "Auditing this page…" });
   updateBadge(tabId, "…", "#2563eb");
   await Indicator.show(tabId, { phase: "running", message: "Auditing this page…", completed: 0, total: 1 });
@@ -443,6 +468,10 @@ async function runAudit(tabId) {
     // No fresh navigation here, so this reflects the load already sitting in the tab.
     report.performance = await measurePerformance(tabId, false).catch(() => null);
     report.technology = await Tech.detect(tabId).catch(() => null);
+    if (options.labScore) {
+      await Indicator.show(tabId, { phase: "running", message: "Scoring on a throttled load…", completed: 0, total: 1 });
+      report.lab = await measureLabScore(tabId, report.facts.url, options.formFactor || "mobile");
+    }
     const sessionId = await processAudit([report], {
       hostname: report.facts.hostname,
       title: tab.title || report.facts.hostname
@@ -609,6 +638,16 @@ async function runCapture(tabId, options) {
           if (report) {
             report.performance = await measurePerformance(tabId, true).catch(() => null);
             report.technology = await Tech.detect(tabId).catch(() => null);
+            if (options.labScore) {
+              publishStatus(tabId, { message: `Scoring ${page.label} on a throttled load…` });
+              await Indicator.show(tabId, {
+                phase: "running",
+                message: `Scoring ${page.label} on a throttled load…`,
+                completed,
+                total
+              });
+              report.lab = await measureLabScore(tabId, page.url, profile.mobile ? "mobile" : "desktop");
+            }
             reports.push(report);
           }
         }
@@ -706,7 +745,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ ok: false, error: "A BrowserSnaps job is already running." });
       return;
     }
-    runAudit(message.tabId);
+    runAudit(message.tabId, message.options || {});
     sendResponse({ ok: true });
     return;
   }

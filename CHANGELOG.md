@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.9.0 - 2026-08-21
+
+- Added an optional lab performance score using Lighthouse's weights and scoring curves, computed locally.
+- Throttled the scored page load to Lighthouse's mobile preset over the DevTools protocol.
+- Added Total Blocking Time from long-task observations and Speed Index from a DevTools filmstrip.
+- Redistributed the weight of any metric that could not be measured and labelled the result a partial score.
+- Kept the score off by default because it costs an extra throttled reload of every page.
+- Reported a clean page's layout shift and blocking time as zero instead of unmeasured.
+- Fixed export controls and capture selection staying visible in the results Audit view.
+- Added a recorded walkthrough of the extension running against a live site.
+
 ## 1.8.0 - 2026-08-21
 
 - Added technology detection covering frameworks, CMSes, commerce, analytics, CDNs, hosting, and servers.

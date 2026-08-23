@@ -24,6 +24,15 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 
 ![BrowserSnaps extension popup showing pages, screen sizes, output options, and capture-window mode](docs/screenshots/browser-snaps-popup.png)
 
+## Walkthrough
+
+![BrowserSnaps capturing and auditing a live site, from the popup through the on-page indicator to the results viewer](docs/screenshots/browser-snaps-walkthrough.gif)
+
+A recording of the real extension against a live site: the popup, a capture with the
+on-page indicator, and the results viewer with the lab score, technology detection, and
+findings. See [docs/DEMO_RECORDING.md](docs/DEMO_RECORDING.md) for what it shows, the two
+harness accommodations it needs, and why its timing numbers are optimistic.
+
 ## What it does
 
 - Works from the website currently open in the active tab
@@ -39,6 +48,7 @@ Internet Explorer cannot run BrowserSnaps because it does not implement the WebE
 - Paginates long captures onto clean portrait Letter sheets instead of oversized PDF pages
 - Audits any page for SEO, accessibility, and page-quality issues, with or without capturing
 - Measures Core Web Vitals and page weight on the same load, with no third-party service
+- Optionally scores performance with Lighthouse's own formula, computed locally
 - Identifies the frameworks, CMS, analytics, CDN, and server behind a page
 - Saves every image on the current page with one click, no capture required
 - Shows a small on-page capture indicator with live progress and a Cancel button
@@ -62,6 +72,18 @@ Findings are grouped into three severities:
 - **Notice** — canonical, heading-level skips, Open Graph and Twitter card completeness, missing structured data, positive `tabindex`, no `main` landmark, thin content, missing `robots.txt` or `sitemap.xml`
 
 Capturing several pages at once adds cross-page checks that a single-page audit cannot do — most usefully, pages sharing a title or meta description.
+
+### Lab performance score
+
+Ticking **Lab performance score** adds a 0–100 number using Lighthouse's published weighting and scoring curves — LCP 25%, TBT 30%, CLS 25%, FCP 10%, Speed Index 10% — computed entirely on your machine. The curve constants and the log-normal scoring function are ported from the Lighthouse source (Apache-2.0) so the arithmetic matches theirs.
+
+To make the number mean something, the scored page is reloaded once under Lighthouse's mobile throttling preset — roughly 1.6 Mbps, 150 ms RTT, 4× CPU slowdown — applied through the DevTools protocol that captures already attach. Speed Index comes from a DevTools screencast filmstrip, scored by histogram comparison against the final frame.
+
+**This is not the PageSpeed Insights number.** PSI applies *simulated* throttling on Google's hardware; this applies *real* throttling on yours. Expect the same ballpark, not the same digits. What it does do that PSI cannot is score pages behind a login, on localhost, or on an intranet.
+
+If a metric cannot be measured — Speed Index needs Chromium's screencast, so Firefox and Safari have none — its weight is redistributed and the report says the score is partial and not comparable, rather than quietly grading on a curve.
+
+It is off by default because it costs an extra throttled reload of every page.
 
 ### Technology
 

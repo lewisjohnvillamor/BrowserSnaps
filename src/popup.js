@@ -16,6 +16,7 @@ const elements = {
   capture: document.querySelector("#capture"),
   cancel: document.querySelector("#cancel"),
   dedicated: document.querySelector("#dedicated-window"),
+  labScore: document.querySelector("#lab-score"),
   outputFormat: document.querySelector("#output-format"),
   outputLayout: document.querySelector("#output-layout"),
   restore: document.querySelector("#restore-original"),
@@ -209,6 +210,7 @@ elements.capture.addEventListener("click", async () => {
       pages: chosenPages,
       profiles,
       dedicatedWindow: elements.dedicated.checked,
+      labScore: elements.labScore.checked,
       outputFormat: elements.outputFormat.value,
       outputLayout: elements.outputLayout.value,
       restoreOriginal: elements.restore.checked
@@ -225,8 +227,17 @@ elements.capture.addEventListener("click", async () => {
 elements.auditPage.addEventListener("click", async () => {
   elements.error.hidden = true;
   setRunning(true);
-  applyStatus({ running: true, completed: 0, total: 1, message: "Auditing this page…" });
-  const response = await chrome.runtime.sendMessage({ type: "START_AUDIT", tabId: activeTab.id });
+  applyStatus({
+    running: true,
+    completed: 0,
+    total: 1,
+    message: elements.labScore.checked ? "Auditing and scoring this page…" : "Auditing this page…"
+  });
+  const response = await chrome.runtime.sendMessage({
+    type: "START_AUDIT",
+    tabId: activeTab.id,
+    options: { labScore: elements.labScore.checked }
+  });
   if (!response?.ok) {
     setRunning(false);
     showError(response?.error || "BrowserSnaps could not audit this page.");
