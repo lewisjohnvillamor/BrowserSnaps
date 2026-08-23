@@ -18,9 +18,10 @@ button { cursor: pointer; }
   top: 0;
   right: 0;
   left: 0;
-  display: grid;
-  grid-template-columns: minmax(190px, 1fr) auto minmax(390px, 1fr);
+  display: flex;
+  flex-wrap: nowrap;
   align-items: center;
+  gap: 12px;
   min-height: 56px;
   padding: 8px 16px;
   color: #fff;
@@ -33,16 +34,18 @@ button { cursor: pointer; }
 .camera::before { position: absolute; top: -4px; left: 5px; width: 9px; height: 5px; border-radius: 2px 2px 0 0; background: #fff; content: ""; }
 .camera::after { position: absolute; top: 3px; left: 7px; width: 6px; height: 6px; border-radius: 50%; background: #111827; content: ""; }
 
-.views { display: flex; gap: 4px; margin-left: 14px; }
+.brand, .views { flex: 0 0 auto; }
+.views { display: flex; gap: 4px; }
 .view-tab { height: 30px; padding: 0 11px; border: 1px solid #374151; border-radius: 7px; color: #d1d5db; background: transparent; font-size: 12px; font-weight: 700; }
 .view-tab:hover { background: #1f2937; }
 .view-tab.active { border-color: #2563eb; color: #fff; background: #2563eb; }
 
 .toolbar-center, .downloads { display: flex; align-items: center; gap: 7px; }
+.toolbar-center { flex: 1 1 auto; justify-content: center; min-width: 0; }
+.downloads { flex: 0 0 auto; }
 .toolbar-center button, .downloads button { min-width: 34px; height: 36px; border: 1px solid #374151; border-radius: 7px; color: #fff; background: #1f2937; }
 .toolbar-center button:hover, .downloads button:hover { background: #374151; }
 .toolbar-center span { min-width: 54px; color: #d1d5db; font-size: 12px; text-align: center; }
-.downloads { justify-content: flex-end; }
 .downloads select { height: 36px; padding: 0 10px; border: 1px solid #374151; border-radius: 7px; color: #e5e7eb; background: #1f2937; font-size: 12px; }
 .downloads button { padding: 0 13px; font-size: 12px; font-weight: 700; }
 .downloads button.primary { border-color: #2563eb; background: #2563eb; }
@@ -144,7 +147,6 @@ figcaption { display: flex; justify-content: space-between; gap: 20px; margin-to
 .toast { position: fixed; z-index: 20; right: 20px; bottom: 20px; max-width: 420px; padding: 11px 14px; border-radius: 9px; color: #fff; background: #172033; box-shadow: 0 8px 25px rgba(15, 23, 42, 0.28); font-size: 12px; }
 
 @media (max-width: 900px) {
-  .toolbar { grid-template-columns: 1fr auto; }
   .toolbar-center { display: none; }
   .downloads select { max-width: 140px; }
   .downloads button { padding: 0 9px; }
