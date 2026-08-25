@@ -18,6 +18,9 @@ const TILE_DELAY = 450;
 const MAX_IMAGES = 200;
 const IMAGE_EXTENSION = /\.(jpe?g|png|gif|webp|avif|svg|bmp|ico|tiff?)$/i;
 const jobs = new Map();
+const SYNC_SCRIPT_ID = "browsersnaps-sync";
+const SYNC_GRID = [{ left: 0, top: 0 }, { left: 1, top: 0 }, { left: 0, top: 1 }, { left: 1, top: 1 }];
+let syncSession = null;
 
 function pause(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -728,7 +731,132 @@ async function runCapture(tabId, options) {
   }).catch(() => chrome.tabs.create({ url: fallbackUrl, active: true }));
 }
 
+// One window per screen size, sized so the content viewport matches the profile.
+async function openSyncWindow(url, profile, index, incognito) {
+  const slot = SYNC_GRID[index % SYNC_GRID.length];
+  const width = profile.width || 1_280;
+  const height = profile.height || 800;
+  const created = await chrome.windows.create({
+    url,
+    type: "normal",
+    focused: index === 0,
+    incognito,
+    width: Math.min(width + 32, 1_920),
+    height: Math.min(height + 120, 1_200),
+    left: slot.left * Math.min(width + 40, 960),
+    top: slot.top * 120
+  });
+  const [tab] = created.tabs || [];
+  // Emulation pins the viewport exactly; window sizing alone bottoms out around 500px.
+  if (tab?.id && profile.width) await Platform.emulateProfile(tab.id, profile).catch(() => {});
+  return { windowId: created.id, tabId: tab?.id, profile };
+}
+
+async function startSyncSession(origin, url, profiles, incognito) {
+  await stopSyncSession();
+
+  const panes = [];
+  for (let index = 0; index < profiles.length; index += 1) {
+    panes.push(await openSyncWindow(url, profiles[index], index, incognito));
+  }
+
+  syncSession = { id: `sync-${Date.now()}`, origin, panes, url };
+
+  // A registered content script survives navigation; executeScript would not.
+  await chrome.scripting.registerContentScripts([{
+    id: SYNC_SCRIPT_ID,
+    js: ["src/sync.js"],
+    matches: [`${origin}/*`],
+    runAt: "document_idle",
+    allFrames: false,
+    persistAcrossSessions: false
+  }]).catch(async (error) => {
+    if (!/duplicate/i.test(error.message)) throw error;
+    await chrome.scripting.updateContentScripts([{ id: SYNC_SCRIPT_ID, js: ["src/sync.js"], matches: [`${origin}/*`] }]);
+  });
+
+  // Panes opened before registration need the agent injected once by hand.
+  for (const pane of syncSession.panes) {
+    if (!pane.tabId) continue;
+    await chrome.scripting.executeScript({ target: { tabId: pane.tabId }, files: ["src/sync.js"] }).catch(() => {});
+  }
+
+  return syncSession;
+}
+
+async function stopSyncSession(closeWindows = false) {
+  await chrome.scripting.unregisterContentScripts({ ids: [SYNC_SCRIPT_ID] }).catch(() => {});
+  if (!syncSession) return;
+  for (const pane of syncSession.panes) {
+    if (pane.tabId) {
+      await chrome.tabs.sendMessage(pane.tabId, { type: "SYNC_END" }).catch(() => {});
+      await Platform.releaseProfile(pane.tabId).catch(() => {});
+    }
+    if (closeWindows && pane.windowId) await chrome.windows.remove(pane.windowId).catch(() => {});
+  }
+  syncSession = null;
+}
+
+function syncPaneFor(tabId) {
+  return syncSession?.panes.find((pane) => pane.tabId === tabId) || null;
+}
+
+async function relaySyncAction(fromTabId, action) {
+  if (!syncSession) return;
+  const results = [];
+  for (const pane of syncSession.panes) {
+    if (!pane.tabId || pane.tabId === fromTabId) continue;
+    const reply = await chrome.tabs.sendMessage(pane.tabId, { type: "SYNC_APPLY", action }).catch(() => null);
+    results.push({ profile: pane.profile.label, applied: Boolean(reply?.applied), reason: reply?.reason });
+  }
+  return results;
+}
+
+chrome.windows.onRemoved.addListener((windowId) => {
+  if (!syncSession) return;
+  syncSession.panes = syncSession.panes.filter((pane) => pane.windowId !== windowId);
+  if (!syncSession.panes.length) stopSyncSession();
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "SYNC_HELLO") {
+    const pane = syncPaneFor(sender.tab?.id);
+    sendResponse(pane ? { sessionId: syncSession.id, profileLabel: pane.profile.label } : {});
+    return;
+  }
+
+  if (message.type === "SYNC_ACTION") {
+    if (syncSession?.id === message.sessionId && sender.tab?.id) {
+      relaySyncAction(sender.tab.id, message.action);
+    }
+    sendResponse({ ok: true });
+    return;
+  }
+
+  if (message.type === "START_SYNC") {
+    (async () => {
+      try {
+        const session = await startSyncSession(message.origin, message.url, message.profiles, message.incognito);
+        sendResponse({ ok: true, panes: session.panes.length });
+      } catch (error) {
+        sendResponse({ ok: false, error: error.message });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "STOP_SYNC") {
+    stopSyncSession().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+
+  if (message.type === "SYNC_STATUS") {
+    sendResponse(syncSession
+      ? { running: true, origin: syncSession.origin, panes: syncSession.panes.map((pane) => pane.profile.label) }
+      : { running: false });
+    return;
+  }
+
   if (message.type === "START_CAPTURE") {
     const { tabId, options } = message;
     if ([...jobs.values()].some((job) => job.running)) {

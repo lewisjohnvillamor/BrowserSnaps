@@ -15,6 +15,7 @@ function boot() {
     clearTimeout,
     chrome: {
       debugger: { onEvent: { addListener: () => {} } },
+      windows: { onRemoved: { addListener: () => {} } },
       runtime: {
         onMessage: { addListener: () => {} },
         sendMessage: async () => {}

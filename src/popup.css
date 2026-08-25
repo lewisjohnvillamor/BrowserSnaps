@@ -121,7 +121,8 @@ button { cursor: pointer; }
 .quick-copy strong { display: block; color: #0f172a; font-size: 12px; font-weight: 800; }
 .quick-copy small { display: block; margin-top: 1px; color: #64748b; font-size: 10px; }
 .quick-chevron { flex: 0 0 auto; color: #94a3b8; font-size: 17px; line-height: 1; }
-#audit-page { margin-top: 12px; }
+#sync-session { margin-top: 12px; }
+#sync-session.active { border-color: #16a34a; background: #f0fdf4; }
 
 .error { margin: 10px 0; padding: 10px; border-radius: 9px; color: #b91c1c; background: #fee2e2; font-size: 11px; }
 
