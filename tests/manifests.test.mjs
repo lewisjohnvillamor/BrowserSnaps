@@ -11,7 +11,7 @@ const firefoxManifest = read("manifest.firefox.json");
 const safariManifest = read("manifest.safari.json");
 
 test("all browser manifests use the release version", () => {
-  assert.equal(chromeManifest.version, "1.10.0");
+  assert.equal(chromeManifest.version, "1.11.0");
   assert.equal(firefoxManifest.version, chromeManifest.version);
   assert.equal(safariManifest.version, chromeManifest.version);
 });

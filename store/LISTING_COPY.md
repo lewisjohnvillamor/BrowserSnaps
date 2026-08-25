@@ -32,7 +32,6 @@ Key features:
 - Use the current browser size or desktop, laptop, tablet, and mobile presets
 - Trigger lazy-loaded and scroll-animated page sections
 - Stitch visible viewport tiles into continuous full-page captures
-- Open every screen size at once and mirror clicks, typing, and scrolling between them
 - Audit any page for SEO, accessibility, and page-quality issues
 - Measure Core Web Vitals and page weight locally, with no third-party scoring service
 - Optionally compute a Lighthouse-formula performance score on your own machine
@@ -66,7 +65,7 @@ https://github.com/lewisjohnvillamor/BrowserSnaps/blob/main/PRIVACY.md
 
 ## Single purpose
 
-Document and inspect user-selected website pages at user-selected viewport sizes: capture them for PDF or PNG export, save the images they contain, review them side by side with interactions kept in sync, and report the SEO, accessibility, and page-quality issues found in the same page load.
+Document user-selected website pages: capture them at user-selected viewport sizes for PDF or PNG export, save the images they contain, and report the SEO, accessibility, and page-quality issues found in the same page load.
 
 ## Permission justifications
 
@@ -85,10 +84,6 @@ Uses Chrome DevTools Protocol only during a user-started capture to apply select
 **downloads**
 
 Saves PDF, PNG, and ZIP files only when the user selects an export action, and saves the current page's images when the user selects the Save page images action.
-
-**Optional site access**
-
-Requested for a single origin only when the user starts a synced session, because keeping several screen sizes in step needs a content script that survives navigation. It is never requested for capture, image saving, or auditing, and the script is unregistered when the session ends.
 
 **offscreen**
 
