@@ -16,9 +16,9 @@ Generated targets:
 
 | Engine | Unpacked directory | Archive |
 | --- | --- | --- |
-| Chromium | `dist/extension` | `dist/BrowserSnaps-v1.10.0-chromium.zip` |
-| Firefox | `dist/firefox-extension` | `dist/BrowserSnaps-v1.10.0-firefox.zip` |
-| Safari | `dist/safari-extension` | `dist/BrowserSnaps-v1.10.0-safari-source.zip` |
+| Chromium | `dist/extension` | `dist/BrowserSnaps-v1.11.0-chromium.zip` |
+| Firefox | `dist/firefox-extension` | `dist/BrowserSnaps-v1.11.0-firefox.zip` |
+| Safari | `dist/safari-extension` | `dist/BrowserSnaps-v1.11.0-safari-source.zip` |
 
 ## Current verification status
 
@@ -50,15 +50,6 @@ Run every case on a normal HTTP or HTTPS test site with at least two same-origin
 - [ ] Mobile responsive capture completes.
 - [ ] Original URL, zoom, and scroll position are restored.
 - [ ] Dedicated capture window returns the tab to its original window.
-- [ ] Starting a synced session prompts for access to the current site only.
-- [ ] One window opens per selected screen size, each labelled with its profile.
-- [ ] Clicking a navigation link in one window navigates all of them.
-- [ ] Typing in an ordinary field appears in every window.
-- [ ] Typing in a password or one-time-code field appears in that window only.
-- [ ] Selects, checkboxes, and scroll position stay in step.
-- [ ] Syncing works from any window, not only the first.
-- [ ] Stopping the session ends mirroring and removes the labels.
-- [ ] A narrow profile renders at its exact width, not the browser's minimum window width.
 - [ ] Audit this page opens a report listing findings by severity.
 - [ ] The report shows Core Web Vitals with good, fair, or poor verdicts.
 - [ ] Lab performance score is off by default.
@@ -124,7 +115,7 @@ On Safari 27+, use the Develop menu's temporary web-extension loading support an
 
 | Browser/version | OS | Date | Tester | Result | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Chrome | — | — | — | Pending v1.10.0 retest | v1.4.1 current-tab capture was confirmed working |
+| Chrome | — | — | — | Pending v1.11.0 retest | v1.4.1 current-tab capture was confirmed working |
 | Edge | — | — | — | Pending | |
 | Brave | — | — | — | Pending | |
 | Opera | — | — | — | Pending | |

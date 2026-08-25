@@ -15,8 +15,6 @@
     clearDeviceMetrics: async () => {},
     applyThrottling: async () => {},
     clearThrottling: async () => {},
-    emulateProfile: async () => {},
-    releaseProfile: async () => {},
     resetNetworkTrace: async () => {},
     startFilmstrip: async () => {},
     stopFilmstrip: async () => null,

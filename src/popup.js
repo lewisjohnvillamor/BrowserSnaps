@@ -26,8 +26,6 @@ const elements = {
   progressBar: document.querySelector("#progress-bar"),
   viewResults: document.querySelector("#view-results"),
   auditPage: document.querySelector("#audit-page"),
-  syncSession: document.querySelector("#sync-session"),
-  syncHint: document.querySelector("#sync-hint"),
   grabImages: document.querySelector("#grab-images"),
   imageCount: document.querySelector("#image-count"),
   error: document.querySelector("#error")
@@ -147,7 +145,6 @@ function renderImageAction(count, available = true) {
   imagesAvailable = available;
   elements.grabImages.disabled = !available;
   elements.auditPage.disabled = !available;
-  elements.syncSession.disabled = !available;
   if (!available) elements.imageCount.textContent = "Unavailable on this page";
   else if (count) elements.imageCount.textContent = `Download ${count}+ image${count === 1 ? "" : "s"} straight to your Downloads folder`;
   else elements.imageCount.textContent = "Checks image tags, video posters, and CSS backgrounds";
@@ -171,7 +168,6 @@ function setRunning(running) {
   });
   elements.grabImages.disabled = running || !imagesAvailable;
   elements.auditPage.disabled = running || !imagesAvailable;
-  elements.syncSession.disabled = running || !imagesAvailable;
   if (running) elements.viewResults.hidden = true;
 }
 
@@ -225,45 +221,6 @@ elements.capture.addEventListener("click", async () => {
     showError(response?.error || "BrowserSnaps could not start the capture.");
     return;
   }
-  window.close();
-});
-
-async function refreshSyncState() {
-  const status = await chrome.runtime.sendMessage({ type: "SYNC_STATUS" }).catch(() => null);
-  const running = Boolean(status?.running);
-  elements.syncSession.classList.toggle("active", running);
-  elements.syncSession.querySelector("strong").textContent = running ? "Stop synced session" : "Start synced session";
-  elements.syncHint.textContent = running
-    ? `Mirroring across ${status.panes.join(", ")}`
-    : "Open every screen size at once and mirror your clicks";
-  return running;
-}
-
-elements.syncSession.addEventListener("click", async () => {
-  elements.error.hidden = true;
-  if (await refreshSyncState()) {
-    await chrome.runtime.sendMessage({ type: "STOP_SYNC" });
-    await refreshSyncState();
-    return;
-  }
-
-  const profiles = selectedProfiles();
-  if (profiles.length < 2) return showError("Select at least two screen sizes to sync between.");
-
-  const origin = new URL(activeTab.url).origin;
-  // Live syncing needs a content script that survives navigation, which activeTab
-  // cannot provide. The grant is asked for one origin, from this click.
-  const granted = await chrome.permissions.request({ origins: [`${origin}/*`] }).catch(() => false);
-  if (!granted) return showError("BrowserSnaps needs access to this site to keep the screen sizes in sync.");
-
-  const response = await chrome.runtime.sendMessage({
-    type: "START_SYNC",
-    origin,
-    url: activeTab.url,
-    profiles,
-    incognito: Boolean(activeTab.incognito)
-  });
-  if (!response?.ok) return showError(response?.error || "BrowserSnaps could not start the synced session.");
   window.close();
 });
 
@@ -324,7 +281,6 @@ chrome.runtime.onMessage.addListener((message) => {
     await discoverPages();
     const status = await chrome.runtime.sendMessage({ type: "GET_STATUS", tabId: activeTab.id });
     applyStatus(status);
-    await refreshSyncState();
   } catch (error) {
     elements.pageList.classList.remove("loading-list");
     elements.pageList.textContent = "No pages available.";

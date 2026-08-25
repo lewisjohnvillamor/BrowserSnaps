@@ -46,7 +46,6 @@ harness accommodations it needs, and why its timing numbers are optimistic.
 - Neutralizes animation and repeating fixed or sticky elements during capture
 - Stitches the viewport tiles into one continuous full-page image
 - Paginates long captures onto clean portrait Letter sheets instead of oversized PDF pages
-- Opens every screen size at once and mirrors your clicks, typing, and scrolling between them
 - Audits any page for SEO, accessibility, and page-quality issues, with or without capturing
 - Measures Core Web Vitals and page weight on the same load, with no third-party service
 - Optionally scores performance with Lighthouse's own formula, computed locally
@@ -61,24 +60,6 @@ harness accommodations it needs, and why its timing numbers are optimistic.
 - Restores the original page, browser zoom, and scroll position when finished
 - Sends no website data to a server
 - Requires no build step and has no production dependencies
-
-## Synced sessions
-
-**Start synced session** opens one window per selected screen size and keeps them in step. Click *About* in the desktop window and every other window navigates there too. Type into a field and the same text appears in all of them. Scrolling, selects, and checkboxes follow as well, and syncing works in any direction.
-
-Each pane emulates its exact viewport rather than relying on window size, because browser windows cannot be made narrower than roughly 500px — a 390px mobile pane sized by the window alone would silently be 500px wide and show the wrong breakpoint.
-
-### What is never synced
-
-Password fields, anything with a one-time-code or payment autocomplete, and fields named like a password, OTP, CVV, or card number are **never read and never transmitted** — not to the other panes, not anywhere. You have to type those into each window yourself, by design.
-
-### Matching a control across screen sizes
-
-The same button is rarely in the same place at every width — *About* may sit in a header on desktop and inside a collapsed hamburger drawer on mobile. So a click is not replayed by position. BrowserSnaps describes the control by test id, id, name, `href`, label text, and role, then scores candidates in each pane and takes the best. A visible control beats an identical one hidden inside a closed menu, and when nothing scores well enough the pane reports no match rather than clicking the wrong thing. Same-origin links sync as navigations rather than clicks, which is far more reliable than replaying the click.
-
-### Access
-
-Live syncing needs a content script that survives navigation, which `activeTab` cannot provide. Starting a session asks for access to **that one origin**, and the permission is requested from your click. Nothing is added to the extension's permanent permissions, and stopping the session unregisters the script.
 
 ## Page audit
 
