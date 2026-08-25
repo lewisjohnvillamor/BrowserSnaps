@@ -17,9 +17,12 @@ BrowserSnaps processes the following information only after you open the extensi
 - Load timings and the sizes, URLs, and response headers of resources the audited page itself requests.
 - Screenshot frames of the audited page's own load, used only to compute Speed Index and discarded once the score is calculated.
 - Whether a fixed list of well-known script variable names exists on the audited page, used only to name the technologies it runs on.
+- During a synced session only: the controls you interact with, the text you type into ordinary fields, and your scroll position, relayed between the windows you opened for that session.
 - The audited site's own /robots.txt and /sitemap.xml, requested from that same site.
 
 This information may include personal or sensitive content if you choose to capture a signed-in or private webpage. BrowserSnaps does not inspect password fields or authentication tokens, but anything visibly rendered on a selected page may appear in the resulting screenshot.
+
+Synced sessions never read or transmit the value of a password field, a field whose autocomplete marks it as a one-time code or payment card detail, or a field named like a password, OTP, CVV, or card number. Those values stay in the window you typed them into and must be entered in each window separately.
 
 ## How the information is used
 
@@ -29,6 +32,7 @@ BrowserSnaps uses this information solely to:
 - Render, scroll, capture, stitch, preview, and export screenshots.
 - Restore the original tab, URL, zoom level, and scroll position after capture.
 - Produce a local SEO, accessibility, page-quality, performance, and technology report for pages the user selects.
+- Mirror interactions between the windows of a synced session the user started.
 
 BrowserSnaps does not use website content or browsing activity for advertising, analytics, profiling, credit decisions, or any unrelated purpose.
 

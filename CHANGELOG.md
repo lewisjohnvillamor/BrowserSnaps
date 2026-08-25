@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.0 - 2026-08-24
+
+- Added synced sessions: every selected screen size opens at once and mirrors your interactions.
+- Synced navigation, clicks, typing, selects, checkboxes, and scroll position between screen sizes.
+- Never read or transmitted password, one-time-code, or payment card fields.
+- Matched controls across screen sizes by test id, id, name, href, and label rather than by position.
+- Preferred a visible control over a twin hidden inside a collapsed menu, and reported no match instead of clicking the wrong one.
+- Emulated each pane's exact viewport, since browser windows cannot go narrower than about 500px.
+- Requested site access for one origin at session start instead of adding a permanent permission.
+
 ## 1.9.0 - 2026-08-21
 
 - Added an optional lab performance score using Lighthouse's weights and scoring curves, computed locally.

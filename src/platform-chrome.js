@@ -118,6 +118,26 @@
         justification: "Stitch viewport tiles and store local capture results."
       });
     },
+    // Sync panes need an exact viewport. Window sizing cannot go below the browser's
+    // own minimum width, so narrow profiles are emulated instead.
+    async emulateProfile(tabId, profile) {
+      await chrome.debugger.attach({ tabId }, DEBUGGER_VERSION);
+      await sendCommand(tabId, "Emulation.setDeviceMetricsOverride", {
+        width: profile.width,
+        height: profile.height,
+        deviceScaleFactor: 1,
+        mobile: Boolean(profile.mobile),
+        screenWidth: profile.width,
+        screenHeight: profile.height
+      });
+      if (profile.mobile) {
+        await sendCommand(tabId, "Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 }).catch(() => {});
+      }
+    },
+    async releaseProfile(tabId) {
+      await sendCommand(tabId, "Emulation.clearDeviceMetricsOverride").catch(() => {});
+      await chrome.debugger.detach({ tabId }).catch(() => {});
+    },
     resetNetworkTrace: async (tabId) => {
       if (traces.has(tabId)) traces.set(tabId, new Map());
     },
